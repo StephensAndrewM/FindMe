@@ -1,0 +1,21 @@
+{
+  "name": "findme",
+  "description": "Online Multiplayer Find Me",
+  "main": "index.js",
+  "authors": [
+    "Andrew Stephens"
+  ],
+  "license": "ISC",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "socket.io": "^1.4.6"
+  }
+}

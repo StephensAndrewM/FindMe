@@ -1,0 +1,25 @@
+{
+  "name": "findme",
+  "version": "0.0.1",
+  "description": "Online Multiplayer Find Me",
+  "main": "index.js",
+  "dependencies": {
+    "bower": "^1.7.9",
+    "express": "^4.13.4",
+    "socket.io": "^1.4.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "postinstall": "./node_modules/bower/bin/bower install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andrewmediaprod/FindMe.git"
+  },
+  "author": "Andrew Stephens",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/andrewmediaprod/FindMe/issues"
+  },
+  "homepage": "https://github.com/andrewmediaprod/FindMe#readme"
+}
