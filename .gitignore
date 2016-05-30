@@ -1,11 +1,17 @@
 
-# Created by https://www.gitignore.io/api/bower,node
+# Created by https://www.gitignore.io/api/linux,node,bower
 
-### Bower ###
-bower_components
-.bower-cache
-.bower-registry
-.bower-tmp
+### Linux ###
+*~
+
+# temporary files which can be created if a process still has a handle open of a deleted file
+.fuse_hidden*
+
+# KDE directory preferences
+.directory
+
+# Linux trash folder which might appear on any partition or disk
+.Trash-*
 
 
 ### Node ###
@@ -46,3 +52,10 @@ jspm_packages
 
 # Optional REPL history
 .node_repl_history
+
+
+### Bower ###
+bower_components
+.bower-cache
+.bower-registry
+.bower-tmp

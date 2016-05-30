@@ -1,0 +1,27 @@
+body {
+	background: black;
+	max-width: 600px;
+	margin: 0 auto;
+}
+
+#flashpad {
+	width:95%;
+	margin:0 auto;
+	padding:5%;
+	box-sizing: border-box;
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.tile {
+	border-radius: 50%;
+	width:23%;
+	height: auto;
+	margin:1%;
+	overflow: hidden;
+}
+
+.tile img {
+	max-width: 100%;
+	display: block;
+}
