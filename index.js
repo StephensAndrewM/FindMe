@@ -12,6 +12,7 @@ server.listen(port, function () {
 
 // Routing
 app.use(express.static(__dirname + '/public'));
+app.use("/bower_components/", express.static(__dirname+"/bower_components"));
 
 // Global to hold current game state
 var GAME = {
@@ -42,7 +43,7 @@ io.on('connection', function (socket) {
 			},
 			required: ["name"]
 		};
-		if (!validate(data, scehma)) { return; }
+		if (!validate(data, schema)) { return; }
 
 		// Can't join a game already in progress
 		if (GAME.started) {
@@ -57,10 +58,10 @@ io.on('connection', function (socket) {
 		// If good name, put into players list and respond happily
 		} else {
 			GAME.players.push(data.name);
-			socket.emit('join ACK', { success:true });
+			socket.emit('join ACK', { success:true, name:data.name });
 
 			// Tell everyone to update their players list
-			socket.broadcast.emit('join', GAME.players);
+			io.emit('join', {players: GAME.players});
 		}
 
 	})
@@ -143,6 +144,7 @@ io.on('connection', function (socket) {
 	socket.on('disconnect', function(data) {
 
 		// TODO Restart the game (people can't leave)
+		console.log(data);
 		
 	})
 

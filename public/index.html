@@ -9,12 +9,34 @@
 	<link rel="apple-touch-icon" href="apple-touch-icon.png">
 	<!-- Place favicon.ico in the root directory -->
 
+	<link href='https://fonts.googleapis.com/css?family=Passion+One|Open+Sans:400,700' rel='stylesheet' type='text/css'>
 	<link rel="stylesheet" href="css/normalize.css">
 	<link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 
+	<div id="welcome">
+
+		<h1 class="gameTitle">Find Me</h1>
+
+		<div id="players">
+			<p><strong>Players:</strong></p>
+			<ul></ul>
+			<p id="noPlayersMsg"><em>No players connected.</em></p>
+		</div>
+
+		<div id="joinGame">
+			<a class="actionbutton" id="startGameButton" href="#">Start Game</a>
+			<input type="text" id="playerInput" placeholder="Enter Your Name" />
+			<a class="actionbutton" id="joinGameButton" href="#">Join</a>
+		</div>
+
+	</div>
+
 	<div id="flashpad">
+
+		<h1 class="gameTitle">Find Me</h1>
+
 		<a class="tile" href="">
 			<img src="http://dummyimage.com/200x200/0f0/fff" />
 		</a>
@@ -71,6 +93,6 @@
 
 	<script src="/bower_components/jquery/dist/jquery.min.js"></script>
 	<script src="/bower_components/socket.io-client/socket.io.js"></script>
-	<script src="js/main.js"></script>
+	<script src="web.js"></script>
 </body>
 </html>

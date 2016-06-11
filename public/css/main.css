@@ -1,3 +1,7 @@
+body, html {
+	height: 100%;
+}
+
 body {
 	background: black;
 	max-width: 600px;
@@ -24,4 +28,105 @@ body {
 .tile img {
 	max-width: 100%;
 	display: block;
+}
+
+a.actionbutton {
+	margin: 5px auto;
+	display: block;
+	width: calc(100% - 20px);
+	padding: 11px 5px 8px;
+	font-family: "Passion One", sans-serif;
+	font-size: 29px;
+	background: #FF3D3D;
+    box-shadow: 0px 5px 0px #750000;
+	border: 0;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	color: #EAEAEA;
+	text-align: center;
+	text-decoration: none;
+	margin: 5px;
+}
+
+a.actionbutton.disabled {
+	background: #757575;
+    box-shadow: 0px 5px 0px #484848;
+    color: #929292;
+}
+
+#players {
+	color: white;
+	font-family: "Open Sans", sans-serif;
+	padding: 20px 0;
+}
+
+#players ul {
+	padding-left:0;
+}
+
+#players p, #players li {
+	margin: 4px 0;
+	font-size: 16px;
+	text-align: center;
+	font-weight: bold;
+	list-style-type: none;
+}
+
+#players strong {
+	color: #00E200;
+	font-size:18px;
+}
+
+#players em {
+	color: #808080;
+	font-weight: normal;
+}
+
+#welcome {
+	height: 100%;
+	position: relative;
+}
+
+.gameTitle {
+	margin-top: 0;
+	padding-top: 5px;
+	color: white;
+	font-size:24px;
+	text-align: center;
+	width: 100%;
+}
+
+#joinGame {
+	position: absolute;
+	bottom: 5px;
+	width: 100%;
+}
+
+#joinGameButton {
+	margin-top:0;
+}
+
+#playerInput {
+	background: #B7B7B7;
+    border: 0;
+    width: calc(100% - 20px);
+    margin: 10px 5px 0;
+    padding: 10px 5px;
+    color: black;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    text-align: center;
+}
+
+#playerInput::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+  color: #3a3a3a;
+}
+#playerInput::-moz-placeholder { /* Firefox 19+ */
+  color: #3a3a3a;
+}
+#playerInput:-ms-input-placeholder { /* IE 10+ */
+  color: #3a3a3a;
+}
+#playerInput:-moz-placeholder { /* Firefox 18- */
+  color: #3a3a3a;
 }
