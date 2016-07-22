@@ -15,9 +15,9 @@
 </head>
 <body>
 
-	<div id="welcome">
+	<h1 class="gameTitle">Find Me</h1>
 
-		<h1 class="gameTitle">Find Me</h1>
+	<div id="welcome">
 
 		<div id="players">
 			<p><strong>Players:</strong></p>
@@ -27,16 +27,16 @@
 
 		<div id="joinGame">
 			<a class="actionbutton" id="startGameButton" href="#">Start Game</a>
-			<input type="text" id="playerInput" placeholder="Enter Your Name" />
-			<a class="actionbutton" id="joinGameButton" href="#">Join</a>
+			<form action="" method="post">
+				<input type="text" id="playerInput" placeholder="Enter Your Name" />
+				<input type="submit" class="actionbutton" id="joinGameButton" value="Join" />
+			</form>
 		</div>
 
 	</div>
 
 	<div id="flashpad">
 
-		<h1 class="gameTitle">Find Me</h1>
-
 		<a class="tile" href="">
 			<img src="http://dummyimage.com/200x200/0f0/fff" />
 		</a>
@@ -88,6 +88,9 @@
 		<a class="tile" href="">
 			<img src="http://dummyimage.com/200x200/ff0/fff" />
 		</a>
+
+		<div id="turn">
+		</div>
 		
 	</div>
 

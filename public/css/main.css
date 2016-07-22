@@ -30,15 +30,15 @@ body {
 	display: block;
 }
 
-a.actionbutton {
+.actionbutton {
 	margin: 5px auto;
 	display: block;
-	width: calc(100% - 20px);
-	padding: 11px 5px 8px;
+	width: calc(100% - 10px);
+	padding: 11px 0 8px;
 	font-family: "Passion One", sans-serif;
 	font-size: 29px;
 	background: #FF3D3D;
-    box-shadow: 0px 5px 0px #750000;
+	box-shadow: 0px 5px 0px #750000;
 	border: 0;
 	text-transform: uppercase;
 	letter-spacing: 1px;
@@ -48,10 +48,10 @@ a.actionbutton {
 	margin: 5px;
 }
 
-a.actionbutton.disabled {
+.actionbutton.disabled {
 	background: #757575;
-    box-shadow: 0px 5px 0px #484848;
-    color: #929292;
+	box-shadow: 0px 5px 0px #484848;
+	color: #929292;
 }
 
 #players {
@@ -83,8 +83,6 @@ a.actionbutton.disabled {
 }
 
 #welcome {
-	height: 100%;
-	position: relative;
 }
 
 .gameTitle {
@@ -108,14 +106,14 @@ a.actionbutton.disabled {
 
 #playerInput {
 	background: #B7B7B7;
-    border: 0;
-    width: calc(100% - 20px);
-    margin: 10px 5px 0;
-    padding: 10px 5px;
-    color: black;
-    font-family: "Open Sans", sans-serif;
-    font-weight: bold;
-    text-align: center;
+	border: 0;
+	width: calc(100% - 20px);
+	margin: 10px 5px 0;
+	padding: 10px 5px;
+	color: black;
+	font-family: "Open Sans", sans-serif;
+	font-weight: bold;
+	text-align: center;
 }
 
 #playerInput::-webkit-input-placeholder { /* Chrome/Opera/Safari */
@@ -129,4 +127,18 @@ a.actionbutton.disabled {
 }
 #playerInput:-moz-placeholder { /* Firefox 18- */
   color: #3a3a3a;
+}
+
+#turn {
+	color: white;
+	font-family: "Passion One", sans-serif;
+	text-transform: uppercase;
+	font-size: 24px;
+	text-align: center;
+	width: 100%;
+	margin-top: 20px;
+}
+
+#turn.highlight {
+	color: #00E200;
 }

@@ -59,6 +59,7 @@ io.on('connection', function (socket) {
 		} else {
 			GAME.players.push(data.name);
 			socket.emit('join ACK', { success:true, name:data.name });
+			socket.username = data.name
 
 			// Tell everyone to update their players list
 			io.emit('join', {players: GAME.players});
@@ -76,8 +77,9 @@ io.on('connection', function (socket) {
 			return;
 		}
 
+		// Notify all players, including player that pressed the start button
 		initializeGame();
-		socket.broadcast.emit('start', {
+		io.emit('start', {
 			current: GAME.current,
 			grid: GAME.grid
 		});
@@ -87,7 +89,7 @@ io.on('connection', function (socket) {
 	socket.on('press', function(data) {
 
 		// Define data format, check for bad input
-		var scehma = {
+		var schema = {
 			type: "object",
 			properties: {
 				player: "string",
@@ -125,7 +127,7 @@ io.on('connection', function (socket) {
 		// Safe tile, update grid
 		GAME.grid[data.y][data.x] = 1;
 
-		// If found mine, broadcast message to end game
+		// If found the mine, broadcast message to end game
 		if (data.y == GAME.mine.y && data.x == GAME.mine.x) {
 			endGame();
 			socket.broadcast.emit('drink', data);
@@ -135,7 +137,7 @@ io.on('connection', function (socket) {
 			nextPlayer();
 			socket.broadcast.emit('press', {
 				grid: GAME.grid,
-				player: GAME.player
+				current: GAME.current
 			});
 		}
 
@@ -143,8 +145,20 @@ io.on('connection', function (socket) {
 
 	socket.on('disconnect', function(data) {
 
-		// TODO Restart the game (people can't leave)
-		console.log(data);
+		// Remove from users list if no game in progress
+		if (!GAME.started) {
+
+			var index = GAME.players.indexOf(socket.username);
+			if (index > -1) { GAME.players.splice(index, 1); }
+
+			// Tell everyone to update their players list
+			io.emit('join', {players: GAME.players});
+		} else {
+
+			// TODO Restart the game in progress (people can't leave)
+			console.log("DISCONNECT");
+
+		}
 		
 	})
 
