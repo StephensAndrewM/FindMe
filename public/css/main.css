@@ -30,6 +30,14 @@ body {
 	display: block;
 }
 
+.tile.pressed {
+	opacity:0.5;
+}
+
+.tile.winning {
+	opacity:0.1;
+}
+
 .actionbutton {
 	margin: 5px auto;
 	display: block;

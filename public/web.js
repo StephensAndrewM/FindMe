@@ -1,3 +1,7 @@
+var UNPRESSED_TILE = 0;
+var PRESSED_TILE = 1;
+var WINNING_TILE = 2;
+
 var GAME = {
 	localPlayer: null,
 	localJoined: false,
@@ -11,8 +15,7 @@ $(function() {
 
 	var socket = io();
 
-	// Hide Flashpad on initial load
-	$('#flashpad').hide();
+	renderStartScreen(true /* immediateHideFlashpad */);
 
 	// Server sends data about its state upon connection
 	socket.on('connect ACK', function(data) {
@@ -21,9 +24,11 @@ $(function() {
 		if (data.started) {
 			// Don't let player join if server already has a game in progress
 			console.log('ERR: Game Already Started');
+			// TODO Display an error to the player
 		}
-
-		updatePlayerList(data.players);
+		
+		GAME.players = data.players;
+		renderPlayerList();
 
 	})
 
@@ -58,13 +63,14 @@ $(function() {
 		if (GAME.localPlayer == null) { return; }
 		if (GAME.started) { return; }
 
-		// Hide button if successful join
+		
 		if (data.success) {
+			// Hide button if successful join
 			console.log('Player successfully joined game');
 			GAME.localJoined = true;
 
-		// TODO Better error handling
 		} else {
+			// Not really sure what errors would happen here
 			console.log('ERR: ', data.message);
 			GAME.localPlayer = null;
 			GAME.localJoined = false;
@@ -79,7 +85,8 @@ $(function() {
 		// Ignore if game currently in progress
 		if (GAME.started) { return; }
 
-		updatePlayerList(data.players);
+		GAME.players = data.players;
+		renderPlayerList();
 
 	})
 
@@ -104,8 +111,7 @@ $(function() {
 			timeToStart--;
 
 			if (timeToStart == -1) {
-				$('#welcome').hide(250);
-				$('#flashpad').show(250);
+				renderFlashpad();
 				clearTimeout(t);
 			}
 
@@ -117,18 +123,22 @@ $(function() {
 		
 	});
 
-	// In-game event, sent from elsewhere
+	// In-game event, sent from elsewhere (or current client)
 	socket.on('press', function(data) {
-
-		turnEvent(data);	
-
+		turnEvent(data);
 	})
 
 	// In-game event, local
 	$('#flashpad a.tile').click(function() {
 
-		if (GAME.current != GAME.localPlayer) { return false; }
-		if ($(this).hasClass('pressed')) { return false; }
+		if (GAME.current != GAME.localPlayer) { 
+			console.log('It is not your turn!', GAME.current, GAME.localPlayer);
+			return false;
+		}
+		if ($(this).hasClass('pressed')) { 
+			console.log('This button has already been pressed.');
+			return false;
+		}
 
 		console.log('press', $(this).data('x'), $(this).data('y'))
 
@@ -138,24 +148,61 @@ $(function() {
 			player: GAME.localPlayer
 		})
 
+		return false;
+
 	});
+
+	socket.on('victory', function(data) {
+		renderGrid(data.grid);
+		GAME.current = null;
+
+		$('#newGameButton').show(250);
+
+		if (data.winner == GAME.localPlayer) {
+			$('#turn').text("You win, " + data.winner + "!").removeClass('highlight');
+		} else {
+			$('#turn').text(data.winner + " wins Find Me!").addClass('highlight');
+		}
+
+	})
+
+	$('#newGameButton').click(function() {
+		// TODO handle start game condition same as regular start
+		renderStartScreen();
+	})
+
+	// This refers to in-game disconnects only
+	socket.on('disconnect', function(data) {
+
+		if (GAME.started) {
+			// If game is running, must stop the game
+			GAME.current = null;
+			GAME.started = false;
+			GAME.players = data.players;
+			$('#turn').text(data.lostPlayer+" has disconnected! :(").removeClass('highlight');
+			$('#newGameButton').show(250);
+		} else {
+			// This is only a disconnection on title screen, nothing serious
+			GAME.players = data.players;
+			renderPlayerList();
+		}
+
+	})
 
 });
 
-var updatePlayerList = function(players) {
-
-	GAME.players = players;
+var renderPlayerList = function() {
 
 	// Truncate Players List, then Recreate List
-	$('#players ul').html('')
-	players.map(function(name) {
+	$('#players ul').html('');
+	GAME.players.map(function(name) {
 		var playerItem = $('<li></li>').text(name);
 		$('#players ul').append(playerItem);
 	})
 
 	// Only allow starting game if player has joined and 2 or more players
-	$('#startGameButton').toggleClass('disabled', !(players.length > 1 && GAME.localJoined));
-	$('#noPlayersMsg').toggle(players.length < 1);
+	$('#startGameButton').toggleClass('disabled', !(GAME.players.length > 1 && GAME.localJoined));
+	$('#noPlayersMsg').toggle(GAME.players.length < 1);
 	
 }
 
@@ -172,13 +219,32 @@ var turnEvent = function(data) {
 
 }
 
+var renderStartScreen = function(immediateHideFlashpad) {
+
+	$('#welcome').show(250);
+	$('#flashpad').hide(immediateHideFlashpad ? null : 250);
+	$('#startGameButton').text("Start Game");
+
+}
+
+var renderFlashpad = function() {
+
+	$('#welcome').hide(250);
+	$('#flashpad').show(250);
+	$('#newGameButton').hide();
+
+}
+
 var renderGrid = function(newGrid) {
 
 	GAME.grid = newGrid;
 
-	for (var y = 0; y < 3; y++) {
-		for (var x = 0; x < 3; x++) {
-			$('#flashpad a').eq((y*4)+x).toggleClass('pressed', GAME.grid[y][x]).data({ 'x': x, 'y': y});
+	for (var y = 0; y < 4; y++) {
+		for (var x = 0; x < 4; x++) {
+			var tile = $('#flashpad a').eq((y*4)+x);
+			tile.data({ 'x': x, 'y': y});
+			tile.toggleClass('pressed', GAME.grid[y][x] == PRESSED_TILE);
+			tile.toggleClass('winning', GAME.grid[y][x] == WINNING_TILE);
 		}
 	}
 

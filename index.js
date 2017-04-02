@@ -14,6 +14,11 @@ server.listen(port, function () {
 app.use(express.static(__dirname + '/public'));
 app.use("/bower_components/", express.static(__dirname+"/bower_components"));
 
+// Misc important constants
+var UNPRESSED_TILE = 0;
+var PRESSED_TILE = 1;
+var WINNING_TILE = 2;
+
 // Global to hold current game state
 var GAME = {
 	started: false,
@@ -69,7 +74,7 @@ io.on('connection', function (socket) {
 
 	socket.on('start', function(data) {
 
-		// No data to check for schema
+		// Data is empty, no need to check schema
 
 		// Make sure we haven't already started a game
 		if (GAME.started) { 
@@ -92,9 +97,9 @@ io.on('connection', function (socket) {
 		var schema = {
 			type: "object",
 			properties: {
-				player: "string",
-				x: "int",
-				y: "int"
+				player: { type: "string" },
+				x: { type: "int" },
+				y: { type: "int" }
 			},
 			required: ["player", "x", "y"]
 		};
@@ -113,12 +118,10 @@ io.on('connection', function (socket) {
 			console.log("press: Received player data out of turn");
 			return;
 		}
-
 		if (data.x < 0 || data.x > 3 || data.y < 0 || data.y > 3) {
 			console.log("press: Received invalid board location");
 			return;
 		}
-
 		if (GAME.grid[data.y][data.x] != 0) {
 			console.log("press: Attempting to press previously selected tile");
 			return;
@@ -129,13 +132,21 @@ io.on('connection', function (socket) {
 
 		// If found the mine, broadcast message to end game
 		if (data.y == GAME.mine.y && data.x == GAME.mine.x) {
-			endGame();
-			socket.broadcast.emit('drink', data);
+			// Highlight tile as winning one
+			GAME.grid[data.y][data.x] = 2;
+			io.emit('victory', {
+				grid: GAME.grid,
+				winner: data.player
+			});
+			// Reset for next game
+			GAME.started = false;
+			GAME.players = [];
+			GAME.current = null;
 
 		// Else, send the updated grid and player info
 		} else {
 			nextPlayer();
-			socket.broadcast.emit('press', {
+			io.emit('press', {
 				grid: GAME.grid,
 				current: GAME.current
 			});
@@ -145,19 +156,22 @@ io.on('connection', function (socket) {
 
 	socket.on('disconnect', function(data) {
 
-		// Remove from users list if no game in progress
-		if (!GAME.started) {
+		// Remove from users list
+		var index = GAME.players.indexOf(socket.username);
 
-			var index = GAME.players.indexOf(socket.username);
-			if (index > -1) { GAME.players.splice(index, 1); }
+		io.emit('disconnect', { 
+			lostPlayer: socket.username
+			players: GAME.players
+		});
 
-			// Tell everyone to update their players list
-			io.emit('join', {players: GAME.players});
+		if (GAME.started) {
+			// Reset for next game, but preserve players list
+			GAME.started = false;
+			GAME.players = [];
+			GAME.current = null;
 		} else {
-
-			// TODO Restart the game in progress (people can't leave)
-			console.log("DISCONNECT");
-
+			// Just remove the player from the list
+			if (index > -1) { GAME.players.splice(index, 1); }
 		}
 		
 	})
@@ -177,7 +191,7 @@ var initializeGame = function() {
 
 }
 
-var endGame = function() {
+var resetForNextGame = function() {
 
 	GAME.started = false;
 	GAME.players = [];
