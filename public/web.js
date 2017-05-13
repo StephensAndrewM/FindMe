@@ -1,15 +1,42 @@
-var UNPRESSED_TILE = 0;
-var PRESSED_TILE = 1;
-var WINNING_TILE = 2;
-
-var GAME = {
-	localPlayer: null,
-	localJoined: false,
-	started: false,
-	players: [],
-	grid: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
-	current: null
+// Constants
+var TILE_STATE = {
+	UNPRESSED: 0,
+	PRESSED: 1,
+	WINNING: 2
 };
+
+var STANDARD_TIMEOUT = 10;
+
+var CLIENT_MESSAGES = {
+	JOIN: "join",
+	START: "start",
+	PRESS: "press",
+	CONNECTION: "connection",
+	DISCONNECT: "disconnect"
+};
+
+var SERVER_MESSAGES = {
+	CONNECT_RESULT: "ConnectResult",
+	JOIN_RESULT : "JoinResult",
+	PLAYER_LIST_UPDATE: "PlayerListUpdate",
+	GAME_START: "GameStart",
+	TILE_PRESS: "TilePress",
+	VICTORY: "Victory",
+	GAME_RESET: "GameReset"
+};
+
+
+// State shared between client and server
+var GlobalGameState = {
+	GameInProgress: false,
+	Players: [],
+	Board: null,
+	CurrentId: -1,
+}
+
+var PrivateLocalState = {
+	PlayerName: null
+}
 
 $(function() {
 
@@ -18,16 +45,15 @@ $(function() {
 	renderStartScreen(true /* immediateHideFlashpad */);
 
 	// Server sends data about its state upon connection
-	socket.on('connect ACK', function(data) {
-		console.log(data);
+	socket.on(SERVER_MESSAGES.CONNECT_RESULT, function(data) {
+		updateGlobalGameState(data);
 
-		if (data.started) {
+		if (GlobalGameState.GameInProgress) {
 			// Don't let player join if server already has a game in progress
 			console.log('ERR: Game Already Started');
 			// TODO Display an error to the player
 		}
-		
-		GAME.players = data.players;
+
 		renderPlayerList();
 
 	})
@@ -41,8 +67,10 @@ $(function() {
 		var name = $('#playerInput').val();
 		if (name != '') {
 			console.log('Attempting to join game');
-			socket.emit('join', { name: name });
-			GAME.localPlayer = name;
+			socket.emit(CLIENT_MESSAGES.JOIN, { 
+				name: name
+			});
+			// Disable button -- will be re-enabled if problem joining
 			$('#joinGameButton').toggleClass('disabled', true);
 		}
 
@@ -57,57 +85,54 @@ $(function() {
 	})
 
 	// Player receives acknowledgement from server after attempting to join
-	socket.on('join ACK', function(data) {
-
-		// Ignore message if player never tried to join or if game in progress
-		if (GAME.localPlayer == null) { return; }
-		if (GAME.started) { return; }
-
+	socket.on(SERVER_MESSAGES.JOIN_RESULT, function(data) {
+		updateGlobalGameState(data);
 		
 		if (data.success) {
-			// Hide button if successful join
 			console.log('Player successfully joined game');
-			GAME.localJoined = true;
+
+			// Save the name after server has confirmed success
+			PrivateLocalState.PlayerName = data.name;
+			renderPlayerList();
 
 		} else {
-			// Not really sure what errors would happen here
+			// TODO Display an error to the player
 			console.log('ERR: ', data.message);
-			GAME.localPlayer = null;
-			GAME.localJoined = false;
 			$('#joinGameButton').toggleClass('disabled', false);
 		}
 
 	})
 
 	// A player has joined the game somewhere else
-	socket.on('join', function(data) {
-
-		// Ignore if game currently in progress
-		if (GAME.started) { return; }
-
-		GAME.players = data.players;
-		renderPlayerList();
-
+	socket.on(SERVER_MESSAGES.PLAYER_LIST_UPDATE, function(data) {
+		updateGlobalGameState(data);
+		// In case we are displaying post-game state, this will switch screens and hide player list
+		renderStartScreen(false /* immediatelyHideFlashpad */);
 	})
 
-	$('#startGameButton').click(function() {
+	var startGameEventHandler = function() {
 
 		// Fake a real disabled attribute
 		if ($(this).hasClass('disabled')) { return false; }
 
 		// Notify server, then server responds with official start
-		socket.emit('start', {});
+		socket.emit(CLIENT_MESSAGES.START, {});
 
 		return false;
 
-	})
+	}
+
+	$('#startGameButton').click(startGameEventHandler);
 
 	// Server notifies that game is definitely starting
-	socket.on('start', function(data) {
+	socket.on(SERVER_MESSAGES.GAME_START, function(data) {
+		updateGlobalGameState(data);
 
 		var timeToStart = 3;
 		var countdown = function() {
-			$('#startGameButton').text("Game Starts In "+timeToStart+"...");
+			var countdownText = "Game Starts In " + timeToStart + "...";
+			$('#startGameButton').text(countdownText);
+			$('#newGameButton').text(countdownText);
 			timeToStart--;
 
 			if (timeToStart == -1) {
@@ -118,72 +143,69 @@ $(function() {
 		}
 		countdown(); // Call it once on click, then repeatedly 
 		var t = window.setInterval(countdown, 1000);
-
-		turnEvent(data);
-		
 	});
 
-	// In-game event, sent from elsewhere (or current client)
-	socket.on('press', function(data) {
-		turnEvent(data);
+	// In-game event, sent from anywhere (local or remote player)
+	socket.on(SERVER_MESSAGES.TILE_PRESS, function(data) {
+		updateGlobalGameState(data);
+		renderGrid();
 	})
 
-	// In-game event, local
+	// In-game event, the local user has pressed a tile
 	$('#flashpad a.tile').click(function() {
 
-		if (GAME.current != GAME.localPlayer) { 
-			console.log('It is not your turn!', GAME.current, GAME.localPlayer);
+		// Ignore presses when not local player's turn
+		var currentPlayerName = GlobalGameState.Players[GlobalGameState.CurrentId];
+		if (currentPlayerName != PrivateLocalState.PlayerName) { 
+			console.log('It is not your turn!', currentPlayerName, PrivateLocalState.PlayerName);
 			return false;
 		}
-		if ($(this).hasClass('pressed')) { 
-			console.log('This button has already been pressed.');
-			return false;
+		var pressX = $(this).data('x');
+		var pressY = $(this).data('y');
+
+		if (GlobalGameState.Board[pressY, pressX] != TILE_STATE.UNPRESSED) {
+			console.log("This tile is already pressed.", pressX, pressY);
 		}
 
-		console.log('press', $(this).data('x'), $(this).data('y'))
+		console.log('Tile Press', pressX, pressY);
 
-		socket.emit('press', {
-			x: $(this).data('x'),
-			y: $(this).data('y'),
-			player: GAME.localPlayer
-		})
+		socket.emit(CLIENT_MESSAGES.PRESS, {
+			x: pressX,
+			y: pressY
+		});
 
 		return false;
 
 	});
 
-	socket.on('victory', function(data) {
-		renderGrid(data.grid);
-		GAME.current = null;
+	socket.on(SERVER_MESSAGES.VICTORY, function(data) {
+		updateGlobalGameState(data);
+		renderGrid();
 
 		$('#newGameButton').show(250);
 
-		if (data.winner == GAME.localPlayer) {
-			$('#turn').text("You win, " + data.winner + "!").removeClass('highlight');
+		var winningPlayerName = GlobalGameState.Players[GlobalGameState.CurrentId];
+		if (winningPlayerName == PrivateLocalState.PlayerName) {
+			$('#turn').text("You win, " + winningPlayerName + "!").addClass('highlight');
 		} else {
-			$('#turn').text(data.winner + " wins Find Me!").addClass('highlight');
+			$('#turn').text(winningPlayerName + " wins Find Me!").removeClass('highlight');
 		}
 
 	})
 
-	$('#newGameButton').click(function() {
-		// TODO handle start game condition same as regular start
-		renderStartScreen();
-	})
+	$('#newGameButton').click(startGameEventHandler);
 
-	// This refers to in-game disconnects only
-	socket.on('disconnect', function(data) {
+	// A player disconnected or timed out
+	socket.on(SERVER_MESSAGES.GAME_RESET, function(data) {
 
-		if (GAME.started) {
-			// If game is running, must stop the game
-			GAME.current = null;
-			GAME.started = false;
-			GAME.players = data.players;
-			$('#turn').text(data.lostPlayer+" has disconnected! :(").removeClass('highlight');
-			$('#newGameButton').show(250);
+		var gameWasInProgress = GlobalGameState.GameInProgress;
+		updateGlobalGameState(data);
+
+		if (gameWasInProgress) {
+			// If game is running, must stop game and return to title screen
+			renderStartScreen(false /* immediatelyHideFlashpad */);
 		} else {
 			// This is only a disconnection on title screen, nothing serious
-			GAME.players = data.players;
 			renderPlayerList();
 		}
 
@@ -195,28 +217,16 @@ var renderPlayerList = function() {
 
 	// Truncate Players List, then Recreate List
 	$('#players ul').html('');
-	GAME.players.map(function(name) {
+	GlobalGameState.Players.map(function(name) {
 		var playerItem = $('<li></li>').text(name);
 		$('#players ul').append(playerItem);
 	})
 
 	// Only allow starting game if player has joined and 2 or more players
-	$('#startGameButton').toggleClass('disabled', !(GAME.players.length > 1 && GAME.localJoined));
-	$('#noPlayersMsg').toggle(GAME.players.length < 1);
+	$('#startGameButton').toggleClass('disabled', 
+		(GlobalGameState.Players.length <= 1 || PrivateLocalState.PlayerName == null));
+	$('#noPlayersMsg').toggle(GlobalGameState.Players.length < 1);
 	
-}
-
-var turnEvent = function(data) {
-
-	renderGrid(data.grid);
-	GAME.current = data.current;
-
-	if (data.current == GAME.localPlayer) {
-		$('#turn').text("Your turn, "+data.current+"!").removeClass('highlight');
-	} else {
-		$('#turn').text("Waiting for "+data.current+"...").addClass('highlight');
-	}
-
 }
 
 var renderStartScreen = function(immediateHideFlashpad) {
@@ -224,6 +234,7 @@ var renderStartScreen = function(immediateHideFlashpad) {
 	$('#welcome').show(250);
 	$('#flashpad').hide(immediateHideFlashpad ? null : 250);
 	$('#startGameButton').text("Start Game");
+	renderPlayerList();
 
 }
 
@@ -232,20 +243,32 @@ var renderFlashpad = function() {
 	$('#welcome').hide(250);
 	$('#flashpad').show(250);
 	$('#newGameButton').hide();
+	$('#newGameButton').text("Play Again!");
+	renderGrid();
 
 }
 
-var renderGrid = function(newGrid) {
-
-	GAME.grid = newGrid;
+var renderGrid = function() {
 
 	for (var y = 0; y < 4; y++) {
 		for (var x = 0; x < 4; x++) {
 			var tile = $('#flashpad a').eq((y*4)+x);
 			tile.data({ 'x': x, 'y': y});
-			tile.toggleClass('pressed', GAME.grid[y][x] == PRESSED_TILE);
-			tile.toggleClass('winning', GAME.grid[y][x] == WINNING_TILE);
+			tile.toggleClass('pressed', GlobalGameState.Board[y][x] == TILE_STATE.PRESSED);
+			tile.toggleClass('winning', GlobalGameState.Board[y][x] == TILE_STATE.WINNING);
 		}
 	}
 
+	var currentPlayerName = GlobalGameState.Players[GlobalGameState.CurrentId];
+	if (currentPlayerName == PrivateLocalState.PlayerName) {
+		$('#turn').text("Your turn, " + currentPlayerName + "!").addClass('highlight');
+	} else {
+		$('#turn').text("Waiting for " + currentPlayerName + "...").removeClass('highlight');
+	}
+
+}
+
+var updateGlobalGameState = function(data) {
+	console.log("Updating Game State", data);
+	GlobalGameState = data.state;
 }
