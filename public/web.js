@@ -35,14 +35,14 @@ var GlobalGameState = {
 }
 
 var PrivateLocalState = {
-	PlayerName: null
+	PlayerName: null,
+	GameStartTileFlash: false,
+	GameWinTileFlash: false,
 }
 
 $(function() {
 
 	var socket = io();
-
-	renderStartScreen(true /* immediateHideFlashpad */);
 
 	// Server sends data about its state upon connection
 	socket.on(SERVER_MESSAGES.CONNECT_RESULT, function(data) {
@@ -106,8 +106,7 @@ $(function() {
 	// A player has joined the game somewhere else
 	socket.on(SERVER_MESSAGES.PLAYER_LIST_UPDATE, function(data) {
 		updateGlobalGameState(data);
-		// In case we are displaying post-game state, this will switch screens and hide player list
-		renderStartScreen(false /* immediatelyHideFlashpad */);
+		renderPlayerList();
 	})
 
 	var startGameEventHandler = function() {
@@ -127,22 +126,13 @@ $(function() {
 	// Server notifies that game is definitely starting
 	socket.on(SERVER_MESSAGES.GAME_START, function(data) {
 		updateGlobalGameState(data);
-
-		var timeToStart = 3;
-		var countdown = function() {
-			var countdownText = "Game Starts In " + timeToStart + "...";
-			$('#startGameButton').text(countdownText);
-			$('#newGameButton').text(countdownText);
-			timeToStart--;
-
-			if (timeToStart == -1) {
-				renderFlashpad();
-				clearTimeout(t);
-			}
-
-		}
-		countdown(); // Call it once on click, then repeatedly 
-		var t = window.setInterval(countdown, 1000);
+		PrivateLocalState.GameStartTileFlash = true;
+		window.setTimeout(function() {
+			PrivateLocalState.GameStartTileFlash = false;
+			renderGrid();
+		}, 2000);
+		hideWelcomeScreen();
+		renderGrid();
 	});
 
 	// In-game event, sent from anywhere (local or remote player)
@@ -182,7 +172,13 @@ $(function() {
 		updateGlobalGameState(data);
 		renderGrid();
 
-		$('#newGameButton').show(250);
+		PrivateLocalState.GameWinTileFlash = true;
+		window.setTimeout(function() {
+			PrivateLocalState.GameWinTileFlash = false;
+			renderGrid();
+			showWelcomeScreen();
+			renderPlayerList();
+		}, 3000);
 
 		var winningPlayerName = GlobalGameState.Players[GlobalGameState.CurrentId];
 		if (winningPlayerName == PrivateLocalState.PlayerName) {
@@ -201,12 +197,12 @@ $(function() {
 		var gameWasInProgress = GlobalGameState.GameInProgress;
 		updateGlobalGameState(data);
 
+		// We'll be displaying a new player list either way
+		renderPlayerList();
+
+		// If game is running, must stop game and return to title screen
 		if (gameWasInProgress) {
-			// If game is running, must stop game and return to title screen
-			renderStartScreen(false /* immediatelyHideFlashpad */);
-		} else {
-			// This is only a disconnection on title screen, nothing serious
-			renderPlayerList();
+			showWelcomeScreen();
 		}
 
 	})
@@ -229,26 +225,27 @@ var renderPlayerList = function() {
 	
 }
 
-var renderStartScreen = function(immediateHideFlashpad) {
-
-	$('#welcome').show(250);
-	$('#flashpad').hide(immediateHideFlashpad ? null : 250);
-	$('#startGameButton').text("Start Game");
+var showWelcomeScreen = function() {
+	$('#welcome').removeClass('offscreen');
 	renderPlayerList();
-
 }
 
-var renderFlashpad = function() {
-
-	$('#welcome').hide(250);
-	$('#flashpad').show(250);
-	$('#newGameButton').hide();
-	$('#newGameButton').text("Play Again!");
-	renderGrid();
-
+var hideWelcomeScreen = function() {
+	$('#welcome').addClass('offscreen');	
 }
 
 var renderGrid = function() {
+
+	// TODO render grid differently when on title screen
+	// TODO render grid differently when on starting screen
+
+	// Don't display current player or update grid if game starting, ending, or not in progress
+	if (PrivateLocalState.GameStartTileFlash 
+		|| PrivateLocalState.GameWinTileFlash
+		|| !GlobalGameState.GameInProgress) { 
+		$('#turn').text("");
+		return;
+	}
 
 	for (var y = 0; y < 4; y++) {
 		for (var x = 0; x < 4; x++) {

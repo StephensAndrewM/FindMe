@@ -6,12 +6,13 @@ body {
 	background: black;
 	max-width: 600px;
 	margin: 0 auto;
+	overflow: hidden;
 }
 
 #flashpad {
 	width:95%;
 	margin:0 auto;
-	padding:5%;
+	padding: 0 5%;
 	box-sizing: border-box;
 	display: flex;
 	flex-wrap: wrap;
@@ -45,8 +46,8 @@ body {
 	padding: 11px 0 8px;
 	font-family: "Passion One", sans-serif;
 	font-size: 29px;
-	background: #FF3D3D;
-	box-shadow: 0px 5px 0px #750000;
+	background: #0cbb00;
+	box-shadow: 0px 5px 0px #00651a;
 	border: 0;
 	text-transform: uppercase;
 	letter-spacing: 1px;
@@ -54,6 +55,11 @@ body {
 	text-align: center;
 	text-decoration: none;
 	margin: 5px;
+}
+
+.actionbutton.red {
+	background: #FF3D3D;
+	box-shadow: 0px 5px 0px #750000;
 }
 
 .actionbutton.disabled {
@@ -74,32 +80,55 @@ body {
 
 #players p, #players li {
 	margin: 4px 0;
-	font-size: 16px;
+	font-size: 20px;
 	text-align: center;
 	font-weight: bold;
 	list-style-type: none;
+	text-transform: uppercase;
 }
 
 #players strong {
 	color: #00E200;
-	font-size:18px;
+	font-size:24px;
+	text-transform: uppercase;
 }
 
-#players em {
+#noPlayersMsg {
 	color: #808080;
 	font-weight: normal;
 }
 
 #welcome {
+	position: absolute;
+	top:0px;
+	left:0;
+	width:100%;
+	height:100%;
+	background:rgba(0,0,0,0.9);
+	opacity:1;
+	transition: 0.5s all;
+	z-index:42;
 }
 
-.gameTitle {
+#welcome.offscreen {
+	top:100%;
+	opacity:0;
+}
+
+#gameTitle {
 	margin-top: 0;
 	padding-top: 5px;
 	color: white;
 	font-size:24px;
 	text-align: center;
 	width: 100%;
+	height:60px;
+	font-family: "Passion One", sans-serif;
+    text-transform: uppercase;
+    font-size: 55px;
+    margin-bottom: 0;
+    font-weight: normal;
+    letter-spacing: 2px;
 }
 
 #joinGame {

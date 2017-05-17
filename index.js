@@ -41,12 +41,11 @@ var SERVER_MESSAGES = {
 	GAME_RESET: "GameReset"
 };
 
-
 // State shared between client and server
 var GlobalGameState = {
 	GameInProgress: false,
 	Players: [],
-	Board: null,
+	Board: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
 	CurrentId: -1,
 }
 
@@ -192,6 +191,11 @@ io.on(CLIENT_MESSAGES.CONNECTION, function (socket) {
 				state: GlobalGameState
 			});
 			resetGameState();
+			// Clear the client-side game state
+			console.log("Sending: " + SERVER_MESSAGES.PLAYER_LIST_UPDATE);
+			io.emit(SERVER_MESSAGES.PLAYER_LIST_UPDATE, {
+				state: GlobalGameState
+			})
 
 		// Else, send the updated grid and player info
 		} else {
