@@ -15,7 +15,7 @@ app.use(express.static(__dirname + '/public'));
 app.use("/bower_components/", express.static(__dirname+"/bower_components"));
 
 // Constants
-var TILE_STATE = {
+var TileState = {
 	UNPRESSED: 0,
 	PRESSED: 1,
 	WINNING: 2
@@ -23,7 +23,7 @@ var TILE_STATE = {
 
 var STANDARD_TIMEOUT = 10000;		// For debug only, use 10 for Prod
 
-var CLIENT_MESSAGES = {
+var ClientMessages = {
 	JOIN: "join",
 	START: "start",
 	PRESS: "press",
@@ -31,7 +31,7 @@ var CLIENT_MESSAGES = {
 	DISCONNECT: "disconnect"
 };
 
-var SERVER_MESSAGES = {
+var ServerMessages = {
 	CONNECT_RESULT: "ConnectResult",
 	JOIN_RESULT : "JoinResult",
 	PLAYER_LIST_UPDATE: "PlayerListUpdate",
@@ -47,6 +47,7 @@ var GlobalGameState = {
 	Players: [],
 	Board: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
 	CurrentId: -1,
+	WinningTile: null,
 }
 
 // These things stay on the server
@@ -56,19 +57,19 @@ var PrivateServerState = {
 }
 
 // Sockets
-io.on(CLIENT_MESSAGES.CONNECTION, function (socket) {
+io.on(ClientMessages.CONNECTION, function (socket) {
 
 	// Initially we don't know who this client is
 	socket.username = null;
 
 	// Greet the user with people who are already present, and whether a game is in progress
-	console.log("Emitting: " + SERVER_MESSAGES.CONNECT_RESULT);
-	socket.emit(SERVER_MESSAGES.CONNECT_RESULT, {
+	console.log("Emitting: " + ServerMessages.CONNECT_RESULT);
+	socket.emit(ServerMessages.CONNECT_RESULT, {
 		state: GlobalGameState
 	})
 
-	socket.on(CLIENT_MESSAGES.JOIN, function(data) {
-		console.log("Received: " + CLIENT_MESSAGES.JOIN);
+	socket.on(ClientMessages.JOIN, function(data) {
+		console.log("Received: " + ClientMessages.JOIN);
 
 		// Define data format, check for bad input
 		var schema = {
@@ -83,8 +84,8 @@ io.on(CLIENT_MESSAGES.CONNECTION, function (socket) {
 		// Can't join a game already in progress
 		if (GlobalGameState.GameInProgress) {
 			console.log("join: Game already in progress");
-			console.log("Sending: " + SERVER_MESSAGES.JOIN_RESULT);
-			socket.emit(SERVER_MESSAGES.JOIN_RESULT, { 
+			console.log("Sending: " + ServerMessages.JOIN_RESULT);
+			socket.emit(ServerMessages.JOIN_RESULT, { 
 				success: false, 
 				message: 'A game is already in progress.',
 				state: GlobalGameState
@@ -93,8 +94,8 @@ io.on(CLIENT_MESSAGES.CONNECTION, function (socket) {
 		// Ensure no duplicate usernames
 		} else if (GlobalGameState.Players.indexOf(data.name) !== -1) {
 			console.log("join: Player name already registered");
-			console.log("Sending: " + SERVER_MESSAGES.JOIN_RESULT);
-			socket.emit(SERVER_MESSAGES.JOIN_RESULT, {
+			console.log("Sending: " + ServerMessages.JOIN_RESULT);
+			socket.emit(ServerMessages.JOIN_RESULT, {
 				success: false,
 				message: 'This player has already joined the game. Please enter a different name.',
 				state: GlobalGameState
@@ -103,8 +104,8 @@ io.on(CLIENT_MESSAGES.CONNECTION, function (socket) {
 		// If good name, put into players list and respond happily
 		} else {
 			GlobalGameState.Players.push(data.name);
-			console.log("Sending: " + SERVER_MESSAGES.JOIN_RESULT);
-			socket.emit(SERVER_MESSAGES.JOIN_RESULT, {
+			console.log("Sending: " + ServerMessages.JOIN_RESULT);
+			socket.emit(ServerMessages.JOIN_RESULT, {
 				success: true,
 				name: data.name,
 				state: GlobalGameState
@@ -113,16 +114,16 @@ io.on(CLIENT_MESSAGES.CONNECTION, function (socket) {
 			socket.username = data.name
 
 			// Tell everyone to update their players list
-			console.log("Sending: " + SERVER_MESSAGES.PLAYER_LIST_UPDATE);
-			io.emit(SERVER_MESSAGES.PLAYER_LIST_UPDATE, {
+			console.log("Sending: " + ServerMessages.PLAYER_LIST_UPDATE);
+			io.emit(ServerMessages.PLAYER_LIST_UPDATE, {
 				state: GlobalGameState
 			});
 		}
 
 	})
 
-	socket.on(CLIENT_MESSAGES.START, function(data) {
-		console.log("Received: " + CLIENT_MESSAGES.START);
+	socket.on(ClientMessages.START, function(data) {
+		console.log("Received: " + ClientMessages.START);
 
 		// Data is empty, no need to check schema
 
@@ -135,16 +136,16 @@ io.on(CLIENT_MESSAGES.CONNECTION, function (socket) {
 		initializeGame();
 
 		// Notify all players, including player that pressed the start button
-		console.log("Sending: " + SERVER_MESSAGES.GAME_START);
-		io.emit(SERVER_MESSAGES.GAME_START, {
+		console.log("Sending: " + ServerMessages.GAME_START);
+		io.emit(ServerMessages.GAME_START, {
 			state: GlobalGameState
 		});
 		expectPress(STANDARD_TIMEOUT + 3);
 
 	})
 
-	socket.on(CLIENT_MESSAGES.PRESS, function(data) {
-		console.log("Received: " + CLIENT_MESSAGES.PRESS);
+	socket.on(ClientMessages.PRESS, function(data) {
+		console.log("Received: " + ClientMessages.PRESS);
 
 		// Define data format, check for bad input
 		var schema = {
@@ -174,7 +175,7 @@ io.on(CLIENT_MESSAGES.CONNECTION, function (socket) {
 			console.log("press: Received invalid board location");
 			return;
 		}
-		if (GlobalGameState.Board[data.y][data.x] != TILE_STATE.UNPRESSED) {
+		if (GlobalGameState.Board[data.y][data.x] != TileState.UNPRESSED) {
 			console.log("press: Attempting to press previously selected tile");
 			return;
 		}
@@ -183,36 +184,39 @@ io.on(CLIENT_MESSAGES.CONNECTION, function (socket) {
 		if (data.y == PrivateServerState.WinningTile.y && data.x == PrivateServerState.WinningTile.x) {
 
 			// Highlight tile as winning one
-			GlobalGameState.Board[data.y][data.x] = TILE_STATE.WINNING;
+			GlobalGameState.Board[data.y][data.x] = TileState.WINNING;
+
+			// Copy the winning tile to server state so clients can display
+			GlobalGameState.WinningTile = PrivateServerState.WinningTile;
 
 			// Inform all players, then reset the server state
-			console.log("Sending: " + SERVER_MESSAGES.VICTORY);
-			io.emit(SERVER_MESSAGES.VICTORY, {
+			console.log("Sending: " + ServerMessages.VICTORY);
+			io.emit(ServerMessages.VICTORY, {
 				state: GlobalGameState
 			});
 			resetGameState();
 			// Clear the client-side game state
-			console.log("Sending: " + SERVER_MESSAGES.PLAYER_LIST_UPDATE);
-			io.emit(SERVER_MESSAGES.PLAYER_LIST_UPDATE, {
+			console.log("Sending: " + ServerMessages.PLAYER_LIST_UPDATE);
+			io.emit(ServerMessages.PLAYER_LIST_UPDATE, {
 				state: GlobalGameState
 			})
 
 		// Else, send the updated grid and player info
 		} else {
 
-			GlobalGameState.Board[data.y][data.x] = TILE_STATE.PRESSED;
+			GlobalGameState.Board[data.y][data.x] = TileState.PRESSED;
 
 			incrementPlayer();
-			console.log("Sending: " + SERVER_MESSAGES.TILE_PRESS);
-			io.emit(SERVER_MESSAGES.TILE_PRESS, {
+			console.log("Sending: " + ServerMessages.TILE_PRESS);
+			io.emit(ServerMessages.TILE_PRESS, {
 				state: GlobalGameState
 			});
 		}
 
 	})
 
-	socket.on(CLIENT_MESSAGES.DISCONNECT, function(data) {
-		console.log("Received: " + CLIENT_MESSAGES.DISCONNECT);
+	socket.on(ClientMessages.DISCONNECT, function(data) {
+		console.log("Received: " + ClientMessages.DISCONNECT);
 
 		// Find the user in the players list
 		var index = GlobalGameState.Players.indexOf(socket.username);
@@ -221,14 +225,14 @@ io.on(CLIENT_MESSAGES.CONNECTION, function (socket) {
 		if (GlobalGameState.GameInProgress) {
 			// Restart the game if someone leaves
 			resetGameState();
-			console.log("Sending: " + SERVER_MESSAGES.GAME_RESET);
-			io.emit(SERVER_MESSAGES.GAME_RESET, {
+			console.log("Sending: " + ServerMessages.GAME_RESET);
+			io.emit(ServerMessages.GAME_RESET, {
 				state: GlobalGameState
 			});
 		} else {
 			// Just remove the player from the list
-			console.log("Sending: " + SERVER_MESSAGES.PLAYER_LIST_UPDATE);
-			io.emit(SERVER_MESSAGES.PLAYER_LIST_UPDATE, {
+			console.log("Sending: " + ServerMessages.PLAYER_LIST_UPDATE);
+			io.emit(ServerMessages.PLAYER_LIST_UPDATE, {
 				state: GlobalGameState
 			})
 		}
@@ -267,8 +271,8 @@ var expectPress = function(seconds) {
 
 		// Notify players and restart game
 		resetGameState();
-		console.log("Sending: " + SERVER_MESSAGES.GAME_RESET);
-		io.emit(SERVER_MESSAGES.GAME_RESET, {
+		console.log("Sending: " + ServerMessages.GAME_RESET);
+		io.emit(ServerMessages.GAME_RESET, {
 			state: GlobalGameState
 		});
 

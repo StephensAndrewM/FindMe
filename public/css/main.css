@@ -24,6 +24,7 @@ body {
 	height: auto;
 	margin:1%;
 	overflow: hidden;
+	background: #c0c0c0;
 }
 
 .tile img {
@@ -31,12 +32,38 @@ body {
 	display: block;
 }
 
-.tile.pressed {
-	opacity:0.5;
+.tile.red {
+	background: #FF3D3D;
 }
 
-.tile.winning {
-	opacity:0.1;
+.tile.green {
+	background: #10ff00;
+}
+
+.tile.green-flash {
+	animation: green-gray-blink 0.3s infinite;
+}
+
+.tile.red-flash {
+	animation: red-gray-blink 0.3s infinite;
+}
+
+@keyframes green-gray-blink {
+	0%, 49% {
+	    background-color: #10ff00 ;
+	}
+	50%, 100% {
+	    background-color: #9e9e9e;
+	}
+}
+
+@keyframes red-gray-blink {
+	0%, 49% {
+	    background-color: #FF3D3D;;
+	}
+	50%, 100% {
+	    background-color: #9e9e9e;
+	}
 }
 
 .actionbutton {
@@ -104,7 +131,7 @@ body {
 	left:0;
 	width:100%;
 	height:100%;
-	background:rgba(0,0,0,0.9);
+	background:rgba(0,0,0,0.8);
 	opacity:1;
 	transition: 0.5s all;
 	z-index:42;

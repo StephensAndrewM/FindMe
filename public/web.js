@@ -1,13 +1,13 @@
 // Constants
-var TILE_STATE = {
+var TileState = {
 	UNPRESSED: 0,
 	PRESSED: 1,
-	WINNING: 2
+	WINNING: 2,
 };
 
 var STANDARD_TIMEOUT = 10;
 
-var CLIENT_MESSAGES = {
+var ClientMessages = {
 	JOIN: "join",
 	START: "start",
 	PRESS: "press",
@@ -15,7 +15,7 @@ var CLIENT_MESSAGES = {
 	DISCONNECT: "disconnect"
 };
 
-var SERVER_MESSAGES = {
+var ServerMessages = {
 	CONNECT_RESULT: "ConnectResult",
 	JOIN_RESULT : "JoinResult",
 	PLAYER_LIST_UPDATE: "PlayerListUpdate",
@@ -25,6 +25,27 @@ var SERVER_MESSAGES = {
 	GAME_RESET: "GameReset"
 };
 
+// This uses a distinct namespace from TileState since there's no 
+//     functionality attached to these display modes.
+var WELCOME_SCREEN_BOARD_COLOR = [
+	[1,0,0,1],
+	[1,0,0,1],
+	[1,0,0,1],
+	[1,0,0,1]];
+var GAME_START_BOARD_COLOR = [
+	[1,0,0,1],
+	[3,0,0,1],
+	[1,0,0,1],
+	[1,0,0,1]];
+
+var TileColor = {
+	GRAY: 0,
+	RED: 1,
+	GREEN: 2,
+	RED_FLASH: 3,
+	GREEN_FLASH: 4,
+}
+
 
 // State shared between client and server
 var GlobalGameState = {
@@ -32,6 +53,7 @@ var GlobalGameState = {
 	Players: [],
 	Board: null,
 	CurrentId: -1,
+	WinningTile: null,
 }
 
 var PrivateLocalState = {
@@ -44,8 +66,10 @@ $(function() {
 
 	var socket = io();
 
+	init();
+
 	// Server sends data about its state upon connection
-	socket.on(SERVER_MESSAGES.CONNECT_RESULT, function(data) {
+	socket.on(ServerMessages.CONNECT_RESULT, function(data) {
 		updateGlobalGameState(data);
 
 		if (GlobalGameState.GameInProgress) {
@@ -55,6 +79,8 @@ $(function() {
 		}
 
 		renderPlayerList();
+		// Initialize title screen flashing
+		renderGrid();
 
 	})
 
@@ -67,7 +93,7 @@ $(function() {
 		var name = $('#playerInput').val();
 		if (name != '') {
 			console.log('Attempting to join game');
-			socket.emit(CLIENT_MESSAGES.JOIN, { 
+			socket.emit(ClientMessages.JOIN, { 
 				name: name
 			});
 			// Disable button -- will be re-enabled if problem joining
@@ -85,7 +111,7 @@ $(function() {
 	})
 
 	// Player receives acknowledgement from server after attempting to join
-	socket.on(SERVER_MESSAGES.JOIN_RESULT, function(data) {
+	socket.on(ServerMessages.JOIN_RESULT, function(data) {
 		updateGlobalGameState(data);
 		
 		if (data.success) {
@@ -104,7 +130,7 @@ $(function() {
 	})
 
 	// A player has joined the game somewhere else
-	socket.on(SERVER_MESSAGES.PLAYER_LIST_UPDATE, function(data) {
+	socket.on(ServerMessages.PLAYER_LIST_UPDATE, function(data) {
 		updateGlobalGameState(data);
 		renderPlayerList();
 	})
@@ -115,7 +141,7 @@ $(function() {
 		if ($(this).hasClass('disabled')) { return false; }
 
 		// Notify server, then server responds with official start
-		socket.emit(CLIENT_MESSAGES.START, {});
+		socket.emit(ClientMessages.START, {});
 
 		return false;
 
@@ -124,7 +150,7 @@ $(function() {
 	$('#startGameButton').click(startGameEventHandler);
 
 	// Server notifies that game is definitely starting
-	socket.on(SERVER_MESSAGES.GAME_START, function(data) {
+	socket.on(ServerMessages.GAME_START, function(data) {
 		updateGlobalGameState(data);
 		PrivateLocalState.GameStartTileFlash = true;
 		window.setTimeout(function() {
@@ -136,7 +162,7 @@ $(function() {
 	});
 
 	// In-game event, sent from anywhere (local or remote player)
-	socket.on(SERVER_MESSAGES.TILE_PRESS, function(data) {
+	socket.on(ServerMessages.TILE_PRESS, function(data) {
 		updateGlobalGameState(data);
 		renderGrid();
 	})
@@ -153,13 +179,13 @@ $(function() {
 		var pressX = $(this).data('x');
 		var pressY = $(this).data('y');
 
-		if (GlobalGameState.Board[pressY, pressX] != TILE_STATE.UNPRESSED) {
+		if (GlobalGameState.Board[pressY, pressX] != TileState.UNPRESSED) {
 			console.log("This tile is already pressed.", pressX, pressY);
 		}
 
 		console.log('Tile Press', pressX, pressY);
 
-		socket.emit(CLIENT_MESSAGES.PRESS, {
+		socket.emit(ClientMessages.PRESS, {
 			x: pressX,
 			y: pressY
 		});
@@ -168,11 +194,12 @@ $(function() {
 
 	});
 
-	socket.on(SERVER_MESSAGES.VICTORY, function(data) {
+	socket.on(ServerMessages.VICTORY, function(data) {
 		updateGlobalGameState(data);
-		renderGrid();
 
 		PrivateLocalState.GameWinTileFlash = true;
+		renderGrid();
+
 		window.setTimeout(function() {
 			PrivateLocalState.GameWinTileFlash = false;
 			renderGrid();
@@ -189,10 +216,8 @@ $(function() {
 
 	})
 
-	$('#newGameButton').click(startGameEventHandler);
-
 	// A player disconnected or timed out
-	socket.on(SERVER_MESSAGES.GAME_RESET, function(data) {
+	socket.on(ServerMessages.GAME_RESET, function(data) {
 
 		var gameWasInProgress = GlobalGameState.GameInProgress;
 		updateGlobalGameState(data);
@@ -243,16 +268,64 @@ var renderGrid = function() {
 	if (PrivateLocalState.GameStartTileFlash 
 		|| PrivateLocalState.GameWinTileFlash
 		|| !GlobalGameState.GameInProgress) { 
-		$('#turn').text("");
+		renderGridNotInGame();
+	} else {
+		renderGridInGame();
+	}
+
+}
+
+var renderGridNotInGame = function() {
+
+	console.log("NotInGame Render");
+
+	// Game-winning tile flash prevents normal rendering
+	// Display 
+	if (PrivateLocalState.GameWinTileFlash) {
+		for (var y = 0; y < 4; y++) {
+			for (var x = 0; x < 4; x++) {
+				var tile = $('#flashpad a').eq((y*4)+x);
+				tile.removeClass('red');
+				tile.removeClass('green');
+				tile.removeClass('red-flash');
+				tile.removeClass('green-flash');
+				if (GlobalGameState.WinningTile.y == y && GlobalGameState.WinningTile.x == x) {
+					tile.addClass('green-flash');
+				}
+			}
+		}
 		return;
 	}
+
+	// Otherwise, display according to a pre-set pattern
+	var layout = PrivateLocalState.GameStartTileFlash ? 
+		GAME_START_BOARD_COLOR : WELCOME_SCREEN_BOARD_COLOR;
 
 	for (var y = 0; y < 4; y++) {
 		for (var x = 0; x < 4; x++) {
 			var tile = $('#flashpad a').eq((y*4)+x);
-			tile.data({ 'x': x, 'y': y});
-			tile.toggleClass('pressed', GlobalGameState.Board[y][x] == TILE_STATE.PRESSED);
-			tile.toggleClass('winning', GlobalGameState.Board[y][x] == TILE_STATE.WINNING);
+			tile.toggleClass('red', layout[y][x] == TileColor.RED);
+			tile.toggleClass('green', layout[y][x] == TileColor.GREEN);
+			tile.toggleClass('red-flash', layout[y][x] == TileColor.RED_FLASH);
+			tile.toggleClass('green-flash', layout[y][x] == TileColor.GREEN_FLASH);
+		}
+	}
+
+	$('#turn').text("");
+
+}
+
+var renderGridInGame = function() {
+
+	console.log("InGame Render");
+
+	for (var y = 0; y < 4; y++) {
+		for (var x = 0; x < 4; x++) {
+			var tile = $('#flashpad a').eq((y*4)+x);
+			tile.toggleClass('red', GlobalGameState.Board[y][x] == TileState.UNPRESSED);
+			tile.toggleClass('green', GlobalGameState.Board[y][x] == TileState.PRESSED);
+			tile.removeClass('red-flash');	// Never used to represent tile state
+			tile.toggleClass('green-flash', GlobalGameState.Board[y][x] == TileState.WINNING);
 		}
 	}
 
@@ -268,4 +341,16 @@ var renderGrid = function() {
 var updateGlobalGameState = function(data) {
 	console.log("Updating Game State", data);
 	GlobalGameState = data.state;
+}
+
+var init = function() {
+
+	// Initialize the data attributes on grid tiles only once
+	for (var y = 0; y < 4; y++) {
+		for (var x = 0; x < 4; x++) {
+			var tile = $('#flashpad a').eq((y*4)+x);
+			tile.data({ 'x': x, 'y': y});
+		}
+	}
+
 }
