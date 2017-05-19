@@ -12,14 +12,15 @@ body {
 #flashpad {
 	width:95%;
 	margin:0 auto;
-	padding: 0 5%;
 	box-sizing: border-box;
 	display: flex;
 	flex-wrap: wrap;
+	border: 3px solid #808080;
+	border-radius:13%;
+	overflow: hidden;
 }
 
 .tile {
-	border-radius: 50%;
 	width:23%;
 	height: auto;
 	margin:1%;
@@ -28,7 +29,8 @@ body {
 }
 
 .tile img {
-	max-width: 100%;
+	width: 100%;
+	height: 100%;
 	display: block;
 }
 
@@ -81,7 +83,7 @@ body {
 	color: #EAEAEA;
 	text-align: center;
 	text-decoration: none;
-	margin: 5px;
+	max-width: 380px;
 }
 
 .actionbutton.red {
@@ -98,7 +100,7 @@ body {
 #players {
 	color: white;
 	font-family: "Open Sans", sans-serif;
-	padding: 20px 0;
+	padding-top:30px;
 }
 
 #players ul {
@@ -127,11 +129,11 @@ body {
 
 #welcome {
 	position: absolute;
-	top:0px;
+	top:60px;
 	left:0;
 	width:100%;
-	height:100%;
-	background:rgba(0,0,0,0.8);
+	height:calc(100% - 60px);
+	background:rgba(0,0,0,0.85);
 	opacity:1;
 	transition: 0.5s all;
 	z-index:42;
@@ -153,7 +155,7 @@ body {
 	font-family: "Passion One", sans-serif;
     text-transform: uppercase;
     font-size: 55px;
-    margin-bottom: 0;
+    margin-bottom: 8px;
     font-weight: normal;
     letter-spacing: 2px;
 }
@@ -172,12 +174,14 @@ body {
 	background: #B7B7B7;
 	border: 0;
 	width: calc(100% - 20px);
-	margin: 10px 5px 0;
+	margin: 20px auto 0;
 	padding: 10px 5px;
 	color: black;
 	font-family: "Open Sans", sans-serif;
 	font-weight: bold;
 	text-align: center;
+	max-width:370px;
+	display: block;
 }
 
 #playerInput::-webkit-input-placeholder { /* Chrome/Opera/Safari */
@@ -200,9 +204,13 @@ body {
 	font-size: 24px;
 	text-align: center;
 	width: 100%;
-	margin-top: 20px;
+	margin-top:20px;
 }
 
 #turn.highlight {
 	color: #00E200;
+}
+
+@media (max-width: 600px) {
+
 }

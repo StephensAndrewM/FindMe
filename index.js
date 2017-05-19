@@ -103,15 +103,19 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 
 		// If good name, put into players list and respond happily
 		} else {
-			GlobalGameState.Players.push(data.name);
+
+			// Long names won't look good
+			var sanitizedName = data.name.substring(0,20);
+
+			GlobalGameState.Players.push(sanitizedName);
 			console.log("Sending: " + ServerMessages.JOIN_RESULT);
 			socket.emit(ServerMessages.JOIN_RESULT, {
 				success: true,
-				name: data.name,
+				name: sanitizedName,
 				state: GlobalGameState
 			});
 			// Associate this string with the socket so we know who disconnected
-			socket.username = data.name
+			socket.username = sanitizedName
 
 			// Tell everyone to update their players list
 			console.log("Sending: " + ServerMessages.PLAYER_LIST_UPDATE);

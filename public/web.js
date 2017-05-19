@@ -227,6 +227,7 @@ $(function() {
 
 		// If game is running, must stop game and return to title screen
 		if (gameWasInProgress) {
+			renderGrid();
 			showWelcomeScreen();
 		}
 
