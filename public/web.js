@@ -58,8 +58,10 @@ var GlobalGameState = {
 
 var PrivateLocalState = {
 	PlayerName: null,
+	ConditionalPlayerName: null,
 	GameStartTileFlash: false,
 	GameWinTileFlash: false,
+	WelcomeErrorMessage: null
 }
 
 $(function() {
@@ -75,7 +77,7 @@ $(function() {
 		if (GlobalGameState.GameInProgress) {
 			// Don't let player join if server already has a game in progress
 			console.log('ERR: Game Already Started');
-			// TODO Display an error to the player
+			displayTemporaryErrorMessage("A game is already in progress!");
 		}
 
 		renderPlayerList();
@@ -121,10 +123,13 @@ $(function() {
 			PrivateLocalState.PlayerName = data.name;
 			renderPlayerList();
 
+			// This clears the message if it's no longer applicable
+			displayTemporaryErrorMessage(data.message);
+
 		} else {
-			// TODO Display an error to the player
 			console.log('ERR: ', data.message);
 			$('#joinGameButton').toggleClass('disabled', false);
+			displayTemporaryErrorMessage(data.message);
 		}
 
 	})
@@ -135,7 +140,7 @@ $(function() {
 		renderPlayerList();
 	})
 
-	var startGameEventHandler = function() {
+	$('#startGameButton').click(function() {
 
 		// Fake a real disabled attribute
 		if ($(this).hasClass('disabled')) { return false; }
@@ -145,9 +150,7 @@ $(function() {
 
 		return false;
 
-	}
-
-	$('#startGameButton').click(startGameEventHandler);
+	});
 
 	// Server notifies that game is definitely starting
 	socket.on(ServerMessages.GAME_START, function(data) {
@@ -157,8 +160,12 @@ $(function() {
 			PrivateLocalState.GameStartTileFlash = false;
 			renderGrid();
 		}, 2000);
-		hideWelcomeScreen();
 		renderGrid();
+
+		// Stay on welcome screen if player never entered a name
+		if (PrivateLocalState.PlayerName != null) {
+			hideWelcomeScreen();
+		}
 	});
 
 	// In-game event, sent from anywhere (local or remote player)
@@ -169,6 +176,10 @@ $(function() {
 
 	// In-game event, the local user has pressed a tile
 	$('#flashpad a.tile').click(function() {
+
+		if (PrivateLocalState.GameStartTileFlash || PrivateLocalState.GameWinTileFlash) {
+			return false;
+		}
 
 		// Ignore presses when not local player's turn
 		var currentPlayerName = GlobalGameState.Players[GlobalGameState.CurrentId];
@@ -229,6 +240,7 @@ $(function() {
 		if (gameWasInProgress) {
 			renderGrid();
 			showWelcomeScreen();
+			displayTemporaryErrorMessage(data.message);
 		}
 
 	})
@@ -248,6 +260,12 @@ var renderPlayerList = function() {
 	$('#startGameButton').toggleClass('disabled', 
 		(GlobalGameState.Players.length <= 1 || PrivateLocalState.PlayerName == null));
 	$('#noPlayersMsg').toggle(GlobalGameState.Players.length < 1);
+
+	if (PrivateLocalState.WelcomeErrorMessage != null) {
+		$('#joinGameMessage').text(PrivateLocalState.WelcomeErrorMessage);
+	} else {
+		$('#joinGameMessage').text("");
+	}
 	
 }
 
@@ -336,6 +354,20 @@ var renderGridInGame = function() {
 	} else {
 		$('#turn').text("Waiting for " + currentPlayerName + "...").removeClass('highlight');
 	}
+
+}
+
+var displayTemporaryErrorMessage = function(msg) {
+
+	PrivateLocalState.WelcomeErrorMessage = msg;
+	// If it's the same message, clear it
+	window.setTimeout(function() {
+		if (PrivateLocalState.WelcomeErrorMessage == msg) {
+			PrivateLocalState.WelcomeErrorMessage = null;
+		}
+		renderPlayerList();
+	}, 5000);
+	renderPlayerList();
 
 }
 

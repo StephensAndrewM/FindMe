@@ -21,7 +21,7 @@ var TileState = {
 	WINNING: 2
 };
 
-var STANDARD_TIMEOUT = 10000;		// For debug only, use 10 for Prod
+var STANDARD_TIMEOUT = 10;
 
 var ClientMessages = {
 	JOIN: "join",
@@ -56,6 +56,8 @@ var PrivateServerState = {
 	PressTimeout: null
 }
 
+var MadeTheStupidJokeOnce = false;
+
 // Sockets
 io.on(ClientMessages.CONNECTION, function (socket) {
 
@@ -81,37 +83,41 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 		};
 		if (!validate(data, schema)) { return; }
 
+		var sanitizedName = data.name.substring(0,20).toUpperCase();
+
 		// Can't join a game already in progress
 		if (GlobalGameState.GameInProgress) {
 			console.log("join: Game already in progress");
 			console.log("Sending: " + ServerMessages.JOIN_RESULT);
 			socket.emit(ServerMessages.JOIN_RESULT, { 
 				success: false, 
-				message: 'A game is already in progress.',
+				message: 'A game is already in progress!',
 				state: GlobalGameState
 			});
 
 		// Ensure no duplicate usernames
-		} else if (GlobalGameState.Players.indexOf(data.name) !== -1) {
+		} else if (GlobalGameState.Players.indexOf(sanitizedName) !== -1) {
 			console.log("join: Player name already registered");
 			console.log("Sending: " + ServerMessages.JOIN_RESULT);
 			socket.emit(ServerMessages.JOIN_RESULT, {
 				success: false,
-				message: 'This player has already joined the game. Please enter a different name.',
+				message: 'That name is already taken!',
 				state: GlobalGameState
 			});
 
 		// If good name, put into players list and respond happily
 		} else {
 
-			// Long names won't look good
-			var sanitizedName = data.name.substring(0,20);
+			var StupidJokeMessage = 
+				(!MadeTheStupidJokeOnce && sanitizedName == "GIA") ? "NO GIA BAD NUMBER!" : "";
+			MadeTheStupidJokeOnce = true;
 
 			GlobalGameState.Players.push(sanitizedName);
 			console.log("Sending: " + ServerMessages.JOIN_RESULT);
 			socket.emit(ServerMessages.JOIN_RESULT, {
 				success: true,
 				name: sanitizedName,
+				message: StupidJokeMessage,
 				state: GlobalGameState
 			});
 			// Associate this string with the socket so we know who disconnected
@@ -144,7 +150,7 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 		io.emit(ServerMessages.GAME_START, {
 			state: GlobalGameState
 		});
-		expectPress(STANDARD_TIMEOUT + 3);
+		expectPress(socket.username, STANDARD_TIMEOUT + 3);
 
 	})
 
@@ -215,12 +221,19 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 			io.emit(ServerMessages.TILE_PRESS, {
 				state: GlobalGameState
 			});
+
+			expectPress(socket.username, STANDARD_TIMEOUT);
 		}
 
 	})
 
 	socket.on(ClientMessages.DISCONNECT, function(data) {
 		console.log("Received: " + ClientMessages.DISCONNECT);
+
+		// If client was playing, we don't need to do anything
+		if (socket.username == null) {
+			return;
+		}
 
 		// Find the user in the players list
 		var index = GlobalGameState.Players.indexOf(socket.username);
@@ -231,6 +244,7 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 			resetGameState();
 			console.log("Sending: " + ServerMessages.GAME_RESET);
 			io.emit(ServerMessages.GAME_RESET, {
+				message: socket.username + " Disconnected!",
 				state: GlobalGameState
 			});
 		} else {
@@ -253,11 +267,11 @@ var initializeGame = function() {
 	GlobalGameState.CurrentId = Math.floor(Math.random() * GlobalGameState.Players.length);
 
 	// Pick a spot on the board for the winning tile
-	// PrivateServerState.WinningTile.x = Math.floor(Math.random()*4);
-	// PrivateServerState.WinningTile.y = Math.floor(Math.random()*4);
+	PrivateServerState.WinningTile.x = Math.floor(Math.random()*4);
+	PrivateServerState.WinningTile.y = Math.floor(Math.random()*4);
 	// FOR DEBUG ONLY winning tile is deterministic
-	PrivateServerState.WinningTile.x = 0;
-	PrivateServerState.WinningTile.y = 0;
+	// PrivateServerState.WinningTile.x = 0;
+	// PrivateServerState.WinningTile.y = 0;
 
 }
 
@@ -270,13 +284,14 @@ var incrementPlayer = function() {
 	GlobalGameState.CurrentId = (GlobalGameState.CurrentId + 1) % GlobalGameState.Players.length;
 }
 
-var expectPress = function(seconds) {
+var expectPress = function(username, seconds) {
 	PrivateServerState.PressTimeout = setTimeout(function() {
 
 		// Notify players and restart game
 		resetGameState();
 		console.log("Sending: " + ServerMessages.GAME_RESET);
 		io.emit(ServerMessages.GAME_RESET, {
+			message: username + " Took Too Long!",
 			state: GlobalGameState
 		});
 

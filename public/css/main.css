@@ -170,6 +170,16 @@ body {
 	margin-top:0;
 }
 
+#joinGameMessage {
+	text-align: center;
+	font-family: "Open Sans", sans-serif;
+	color:white;
+	margin-bottom:20px;
+	font-weight: bold;
+	font-size:16px;
+	text-transform: uppercase;
+}
+
 #playerInput {
 	background: #B7B7B7;
 	border: 0;
