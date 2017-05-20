@@ -1,6 +1,6 @@
 {
   "name": "findme",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Online Multiplayer Find Me",
   "main": "index.js",
   "dependencies": {
@@ -11,16 +11,16 @@
   },
   "devDependencies": {},
   "scripts": {
-    "postinstall": "./node_modules/bower/bin/bower install"
+    "postinstall": "bower install"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/andrewmediaprod/FindMe.git"
+    "url": "https://github.com/StephensAndrewM/FindMe.git"
   },
   "author": "Andrew Stephens",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/andrewmediaprod/FindMe/issues"
+    "url": "https://github.com/StephensAndrewM/FindMe/issues"
   },
-  "homepage": "https://github.com/andrewmediaprod/FindMe#readme"
+  "homepage": "https://github.com/StephensAndrewM/FindMe#readme"
 }
