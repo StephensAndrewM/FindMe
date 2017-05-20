@@ -285,7 +285,15 @@ var incrementPlayer = function() {
 }
 
 var expectPress = function(username, seconds) {
+
+	clearTimeout(PrivateServerState.PressTimeout);
+
 	PrivateServerState.PressTimeout = setTimeout(function() {
+
+		// Don't do anything if the game is over
+		if (GlobalGameState.GameInProgress) {
+			return;
+		}
 
 		// Notify players and restart game
 		resetGameState();
