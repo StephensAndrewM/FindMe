@@ -25,6 +25,13 @@ var ServerMessages = {
 	GAME_RESET: "GameReset"
 };
 
+// These get preloaded in init()
+var EventSounds = {
+	START: null,
+	PRESS: null,
+	WIN: null
+}
+
 // This uses a distinct namespace from TileState since there's no 
 //     functionality attached to these display modes.
 var WELCOME_SCREEN_BOARD_COLOR = [
@@ -161,6 +168,7 @@ $(function() {
 			renderGrid();
 		}, 2000);
 		renderGrid();
+		playSound(EventSounds.START);
 
 		// Stay on welcome screen if player never entered a name
 		if (PrivateLocalState.PlayerName != null) {
@@ -172,6 +180,7 @@ $(function() {
 	socket.on(ServerMessages.TILE_PRESS, function(data) {
 		updateGlobalGameState(data);
 		renderGrid();
+		playSound(EventSounds.PRESS);
 	})
 
 	// In-game event, the local user has pressed a tile
@@ -210,6 +219,7 @@ $(function() {
 
 		PrivateLocalState.GameWinTileFlash = true;
 		renderGrid();
+		playSound(EventSounds.WIN);
 
 		window.setTimeout(function() {
 			PrivateLocalState.GameWinTileFlash = false;
@@ -386,4 +396,15 @@ var init = function() {
 		}
 	}
 
+	EventSounds.PRESS = new Audio("/sound/press.mp3");
+	EventSounds.START = new Audio("/sound/start.mp3");
+	EventSounds.WIN = new Audio("/sound/win.mp3");
+
+}
+
+var playSound = function(soundObj) {
+	// If not HAVE_ENOUGH_DATA don't try to play
+	if (soundObj.readyState < 4) { return; }
+	soundObj.currentTime = 0;
+	soundObj.play();
 }
