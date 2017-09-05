@@ -27,6 +27,7 @@ var ClientMessages = {
 	JOIN: "join",
 	START: "start",
 	PRESS: "press",
+	EXIT: "exit",
 	CONNECTION: "connection",
 	DISCONNECT: "disconnect"
 };
@@ -150,7 +151,7 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 		io.emit(ServerMessages.GAME_START, {
 			state: GlobalGameState
 		});
-		expectPress(socket.username, STANDARD_TIMEOUT + 3);
+		expectPress(STANDARD_TIMEOUT + 3);
 
 	})
 
@@ -222,39 +223,17 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 				state: GlobalGameState
 			});
 
-			expectPress(socket.username, STANDARD_TIMEOUT);
+			expectPress(STANDARD_TIMEOUT);
 		}
 
 	})
 
+	socket.on(ClientMessages.EXIT, function(data) {
+		gameExitHandler(socket);
+	});
+
 	socket.on(ClientMessages.DISCONNECT, function(data) {
-		console.log("Received: " + ClientMessages.DISCONNECT);
-
-		// If client was playing, we don't need to do anything
-		if (socket.username == null) {
-			return;
-		}
-
-		// Find the user in the players list
-		var index = GlobalGameState.Players.indexOf(socket.username);
-		if (index > -1) { GlobalGameState.Players.splice(index, 1); }
-
-		if (GlobalGameState.GameInProgress) {
-			// Restart the game if someone leaves
-			resetGameState();
-			console.log("Sending: " + ServerMessages.GAME_RESET);
-			io.emit(ServerMessages.GAME_RESET, {
-				message: socket.username + " Disconnected!",
-				state: GlobalGameState
-			});
-		} else {
-			// Just remove the player from the list
-			console.log("Sending: " + ServerMessages.PLAYER_LIST_UPDATE);
-			io.emit(ServerMessages.PLAYER_LIST_UPDATE, {
-				state: GlobalGameState
-			})
-		}
-		
+		gameExitHandler(socket);
 	})
 
 });
@@ -284,16 +263,25 @@ var incrementPlayer = function() {
 	GlobalGameState.CurrentId = (GlobalGameState.CurrentId + 1) % GlobalGameState.Players.length;
 }
 
-var expectPress = function(username, seconds) {
+var expectPress = function(seconds) {
 
 	clearTimeout(PrivateServerState.PressTimeout);
+	var timeStamp = Math.floor(Date.now() / 1000);
+	console.log("Setting timeout at " + timeStamp);
+
+	console.log(seconds * 1000);
 
 	PrivateServerState.PressTimeout = setTimeout(function() {
 
+		var timeStamp = Math.floor(Date.now() / 1000);
+		console.log("Timeout has occurred at " + timeStamp);
+
 		// Don't do anything if the game is over
-		if (GlobalGameState.GameInProgress) {
+		if (!GlobalGameState.GameInProgress) {
 			return;
 		}
+
+		var username = GlobalGameState.Players[GlobalGameState.CurrentId];
 
 		// Notify players and restart game
 		resetGameState();
@@ -304,4 +292,33 @@ var expectPress = function(username, seconds) {
 		});
 
 	}, seconds * 1000);
+}
+
+var gameExitHandler = function(socket) {
+	console.log("Received: " + ClientMessages.DISCONNECT);
+
+	// If client never joined, we don't need to do anything
+	if (socket.username == null) {
+		return;
+	}
+
+	// Find the user in the players list
+	var index = GlobalGameState.Players.indexOf(socket.username);
+	if (index > -1) { GlobalGameState.Players.splice(index, 1); }
+
+	if (GlobalGameState.GameInProgress) {
+		// Restart the game if someone leaves
+		resetGameState();
+		console.log("Sending: " + ServerMessages.GAME_RESET);
+		io.emit(ServerMessages.GAME_RESET, {
+			message: socket.username + " Disconnected!",
+			state: GlobalGameState
+		});
+	} else {
+		// Just remove the player from the list
+		console.log("Sending: " + ServerMessages.PLAYER_LIST_UPDATE);
+		io.emit(ServerMessages.PLAYER_LIST_UPDATE, {
+			state: GlobalGameState
+		})
+	}
 }

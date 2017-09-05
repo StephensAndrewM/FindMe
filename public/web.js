@@ -11,6 +11,7 @@ var ClientMessages = {
 	JOIN: "join",
 	START: "start",
 	PRESS: "press",
+	EXIT: "exit",
 	CONNECTION: "connection",
 	DISCONNECT: "disconnect"
 };
@@ -155,6 +156,7 @@ $(function() {
 			renderPlayerList();
 
 			PrivateLocalState.PlayerViewState = PlayerStateOptions.HAS_JOINED;
+			renderJoinBox();
 			renderControlButtons([ControlButtons.START, ControlButtons.EXIT]);
 			// This clears the message if it's no longer applicable
 			displayTemporaryErrorMessage(data.message);
@@ -164,6 +166,7 @@ $(function() {
 			// $('#joinGameButton').toggleClass('disabled', false);
 			displayTemporaryErrorMessage(data.message);
 		}
+
 
 	})
 
@@ -288,6 +291,14 @@ $(function() {
 		}
 
 	})
+
+	$('#exitGameButton').click(function() {
+		console.log("Attempting to disconnect");
+		PrivateLocalState.PlayerName = null;
+		socket.emit(ClientMessages.EXIT, {});
+		showWelcomeScreen();
+		return false;
+	});
 
 });
 
