@@ -9,6 +9,18 @@ body {
 	overflow: hidden;
 }
 
+/* Apparently blur filters and overflow:hidden; don't play nice */
+#flashpadWrapper {
+	transition: all 0.5s ease;
+	opacity:1;
+	filter: blur(0px);
+}
+
+#flashpadWrapper.isObscured {
+	opacity:0.2;
+	filter: blur(2px);
+}
+
 #flashpad {
 	width:95%;
 	margin:0 auto;
@@ -69,8 +81,7 @@ body {
 }
 
 .actionbutton {
-	margin: 5px auto;
-	display: block;
+	margin: 5px;
 	width: calc(100% - 10px);
 	padding: 11px 0 8px;
 	font-family: "Passion One", sans-serif;
@@ -84,9 +95,12 @@ body {
 	text-align: center;
 	text-decoration: none;
 	max-width: 380px;
+	border-radius:5px;
+	overflow: hidden;
+	display: none;
 }
 
-.actionbutton.red {
+.actionbutton-red {
 	background: #FF3D3D;
 	box-shadow: 0px 5px 0px #750000;
 }
@@ -97,10 +111,27 @@ body {
 	color: #929292;
 }
 
+.actionbutton.buttonIsActive {
+	display: block;
+}
+
 #players {
+	position: absolute;
+	top:60px;
+	left:0;
+	width:100%;
+	height:calc(100% - 60px);
+	opacity:1;
+	z-index:40;
 	color: white;
 	font-family: "Open Sans", sans-serif;
 	padding-top:30px;
+	transition: 0.5s all cubic-bezier(0.25, 0.46, 0.45, 0.94); /* easeOutQuad */
+}
+
+#players.offscreen {
+	top:100%;
+	opacity:0;
 }
 
 #players ul {
@@ -114,6 +145,7 @@ body {
 	font-weight: bold;
 	list-style-type: none;
 	text-transform: uppercase;
+	transition: opacity 0.1s ease;
 }
 
 #players strong {
@@ -122,26 +154,13 @@ body {
 	text-transform: uppercase;
 }
 
+.playerWantsToJoin #players li, .playerWantsToJoin #players p {
+	opacity: 0;
+}
+
 #noPlayersMsg {
 	color: #808080;
 	font-weight: normal;
-}
-
-#welcome {
-	position: absolute;
-	top:60px;
-	left:0;
-	width:100%;
-	height:calc(100% - 60px);
-	background:rgba(0,0,0,0.85);
-	opacity:1;
-	transition: 0.5s all;
-	z-index:42;
-}
-
-#welcome.offscreen {
-	top:100%;
-	opacity:0;
 }
 
 #gameTitle {
@@ -160,31 +179,60 @@ body {
     letter-spacing: 2px;
 }
 
-#joinGame {
+#gameControl {
 	position: absolute;
-	bottom: 5px;
-	width: 100%;
+	bottom: 10px;
+	width: calc(100% - 10px);
+	left: 5px;
+	z-index:42;
+	/*transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */*/
+	height:100px;
+}
+
+#gameControl .actionButton {
+	margin: 0 5px;
+}
+
+#gameControl .buttonIsActive.buttonIsHalf {
+	width: calc(50% - 13px);
+	display: inline-block;
+}
+
+#joinGameForm {
+	position: absolute;
+	top:-100px;
+	width:100%;
+	z-index:41;
+	transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */
+}
+
+.playerWantsToJoin #joinGameForm {
+	top:70px;
 }
 
 #joinGameButton {
 	margin-top:0;
+	position: relative;
+	display: block;
+	width: calc(100% - 20px);
+    margin: 0 auto;
 }
 
-#joinGameMessage {
+#joinGameMessage, #generalGameMessage {
 	text-align: center;
 	font-family: "Open Sans", sans-serif;
 	color:white;
-	margin-bottom:20px;
+	margin-top:20px;
 	font-weight: bold;
 	font-size:16px;
 	text-transform: uppercase;
 }
 
 #playerInput {
-	background: #B7B7B7;
+	background: #E4E4E4;
 	border: 0;
-	width: calc(100% - 20px);
-	margin: 20px auto 0;
+	width: calc(100% - 50px);
+	margin: 0 auto;
 	padding: 10px 5px;
 	color: black;
 	font-family: "Open Sans", sans-serif;
@@ -192,19 +240,30 @@ body {
 	text-align: center;
 	max-width:370px;
 	display: block;
+	border-radius: 5px 5px 0 0;
+	transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); /* easeOutQuint */
+	text-transform: uppercase;
+}
+
+#playerInput:focus {
+	outline: none;
+}
+
+.playerWantsToJoin #playerInput {
+	top:0; /* Stop hiding behind button */
 }
 
 #playerInput::-webkit-input-placeholder { /* Chrome/Opera/Safari */
-  color: #3a3a3a;
+  color: #666666;
 }
 #playerInput::-moz-placeholder { /* Firefox 19+ */
-  color: #3a3a3a;
+  color: #666666;
 }
 #playerInput:-ms-input-placeholder { /* IE 10+ */
-  color: #3a3a3a;
+  color: #666666;
 }
 #playerInput:-moz-placeholder { /* Firefox 18- */
-  color: #3a3a3a;
+  color: #666666;
 }
 
 #turn {
@@ -219,8 +278,4 @@ body {
 
 #turn.highlight {
 	color: #00E200;
-}
-
-@media (max-width: 600px) {
-
 }

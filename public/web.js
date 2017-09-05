@@ -32,6 +32,18 @@ var EventSounds = {
 	WIN: null
 }
 
+var PlayerStateOptions = {
+	WATCHING: 'playerIsWatching',
+	WANTS_TO_JOIN: 'playerWantsToJoin',
+	HAS_JOINED: 'playerHasJoined'
+}
+
+var ControlButtons = {
+	START: "#startGameButton",
+	ENTER: "#enterGameButton",
+	EXIT: "#exitGameButton"
+}
+
 // This uses a distinct namespace from TileState since there's no 
 //     functionality attached to these display modes.
 var WELCOME_SCREEN_BOARD_COLOR = [
@@ -65,7 +77,8 @@ var GlobalGameState = {
 
 var PrivateLocalState = {
 	PlayerName: null,
-	ConditionalPlayerName: null,
+	PlayerViewState: PlayerStateOptions.WATCHING,
+	ControlButtonsToDisplay: [ControlButtons.ENTER],
 	GameStartTileFlash: false,
 	GameWinTileFlash: false,
 	WelcomeErrorMessage: null
@@ -82,22 +95,33 @@ $(function() {
 		updateGlobalGameState(data);
 
 		if (GlobalGameState.GameInProgress) {
-			// Don't let player join if server already has a game in progress
-			console.log('ERR: Game Already Started');
-			displayTemporaryErrorMessage("A game is already in progress!");
+			hideWelcomeScreen();
 		}
 
 		renderPlayerList();
+		renderControlButtons();
+		renderJoinBox();
 		// Initialize title screen flashing
 		renderGrid();
 
+	})
+
+	$('#enterGameButton').click(function() {
+		// Player has just loaded page, display input box
+		PrivateLocalState.PlayerViewState = PlayerStateOptions.WANTS_TO_JOIN;
+		$('#playerInput').focus();
+		renderJoinBox();
+		renderControlButtons([]);
+		// Blur grid in case they're watching game
+		renderGrid();
+		return false;
 	})
 
 	// Join game when player presses button
 	$('#joinGameButton').click(function() {
 
 		// Fake a real disabled attribute
-		if ($(this).hasClass('disabled')) { return false; }
+		// if ($(this).hasClass('disabled')) { return false; }
 
 		var name = $('#playerInput').val();
 		if (name != '') {
@@ -106,7 +130,7 @@ $(function() {
 				name: name
 			});
 			// Disable button -- will be re-enabled if problem joining
-			$('#joinGameButton').toggleClass('disabled', true);
+			// $('#joinGameButton').toggleClass('disabled', true);
 		}
 
 		return false;
@@ -114,7 +138,7 @@ $(function() {
 	})
 
 	// In case the form submits, do the same thing as button press
-	$('#joinGameButton form').submit(function() {
+	$('#joinGameForm').submit(function() {
 		$('#joinGameButton').click();
 		return false;
 	})
@@ -130,12 +154,14 @@ $(function() {
 			PrivateLocalState.PlayerName = data.name;
 			renderPlayerList();
 
+			PrivateLocalState.PlayerViewState = PlayerStateOptions.HAS_JOINED;
+			renderControlButtons([ControlButtons.START, ControlButtons.EXIT]);
 			// This clears the message if it's no longer applicable
 			displayTemporaryErrorMessage(data.message);
 
 		} else {
 			console.log('ERR: ', data.message);
-			$('#joinGameButton').toggleClass('disabled', false);
+			// $('#joinGameButton').toggleClass('disabled', false);
 			displayTemporaryErrorMessage(data.message);
 		}
 
@@ -170,10 +196,18 @@ $(function() {
 		renderGrid();
 		playSound(EventSounds.START);
 
-		// Stay on welcome screen if player never entered a name
+		hideWelcomeScreen();
+
 		if (PrivateLocalState.PlayerName != null) {
-			hideWelcomeScreen();
+			renderControlButtons([ControlButtons.EXIT]);
+		} else {
+			renderControlButtons([ControlButtons.ENTER]);
+			// Close the join box if it's open
+			PrivateLocalState.PlayerViewState = PlayerStateOptions.WATCHING;
+			renderJoinBox();
 		}
+
+
 	});
 
 	// In-game event, sent from anywhere (local or remote player)
@@ -257,6 +291,23 @@ $(function() {
 
 });
 
+var renderJoinBox = function() {
+
+	// Display the correct text on join button
+	if (GlobalGameState.GameInProgress) {
+		$('#joinGameButton').val("Join Next Game");
+	} else {
+		$('#joinGameButton').val("Join Now");
+	}
+
+	// Set class that controls what join/exit buttons are displayed
+	for (var i in PlayerStateOptions) {
+		$('body').removeClass(PlayerStateOptions[i]);
+	}
+	$('body').addClass(PrivateLocalState.PlayerViewState);
+
+}
+
 var renderPlayerList = function() {
 
 	// Truncate Players List, then Recreate List
@@ -272,20 +323,28 @@ var renderPlayerList = function() {
 	$('#noPlayersMsg').toggle(GlobalGameState.Players.length < 1);
 
 	if (PrivateLocalState.WelcomeErrorMessage != null) {
-		$('#joinGameMessage').text(PrivateLocalState.WelcomeErrorMessage);
+		$('#generalGameMessage').text(PrivateLocalState.WelcomeErrorMessage);
 	} else {
-		$('#joinGameMessage').text("");
+		$('#generalGameMessage').text("");
 	}
 	
 }
 
 var showWelcomeScreen = function() {
-	$('#welcome').removeClass('offscreen');
+	$('#players').removeClass('offscreen');
+	if (PrivateLocalState.PlayerName == null) {
+		renderControlButtons([ControlButtons.ENTER]);
+		PrivateLocalState.PlayerViewState = PlayerStateOptions.WATCHING;
+	} else {
+		renderControlButtons([ControlButtons.START, ControlButtons.EXIT]);
+		PrivateLocalState.PlayerViewState = PlayerStateOptions.HAS_JOINED;
+	}
+	renderJoinBox();
 	renderPlayerList();
 }
 
 var hideWelcomeScreen = function() {
-	$('#welcome').addClass('offscreen');	
+	$('#players').addClass('offscreen');	
 }
 
 var renderGrid = function() {
@@ -301,6 +360,10 @@ var renderGrid = function() {
 	} else {
 		renderGridInGame();
 	}
+
+	$('#flashpadWrapper').toggleClass('isObscured', 
+		!GlobalGameState.GameInProgress 
+		|| PrivateLocalState.PlayerViewState == PlayerStateOptions.WANTS_TO_JOIN)
 
 }
 
@@ -396,15 +459,52 @@ var init = function() {
 		}
 	}
 
+	// Preload sound files
 	EventSounds.PRESS = new Audio("/sound/press.mp3");
 	EventSounds.START = new Audio("/sound/start.mp3");
 	EventSounds.WIN = new Audio("/sound/win.mp3");
 
 }
 
+var renderControlButtons = function(buttons) {
+	if (buttons !== undefined) {
+		PrivateLocalState.ControlButtonsToDisplay = buttons;
+	}
+
+	// Annoyingly can't do this CSS-only because callback doesn't work properly
+	$('#gameControl').animate({
+		bottom: '-100px'
+	}, 200, null, function() {
+
+		$('#gameControl .actionbutton').removeClass('buttonIsActive buttonIsHalf');
+
+		for (var i in PrivateLocalState.ControlButtonsToDisplay) {
+			var buttonSelector = PrivateLocalState.ControlButtonsToDisplay[i];
+			$(buttonSelector).addClass('buttonIsActive');
+		}
+
+		if (PrivateLocalState.ControlButtonsToDisplay.length > 1) {
+			$('#gameControl .actionbutton').addClass('buttonIsHalf');
+		}
+
+		// Re-display the bar once buttons have been modified
+		$('#gameControl').animate({
+			bottom: '10px'
+		}, 200)
+
+	})
+
+}
+
 var playSound = function(soundObj) {
+	if (isDebug()) { return; } 		// Save Andrew's sanity during dev work
+
 	// If not HAVE_ENOUGH_DATA don't try to play
 	if (soundObj.readyState < 4) { return; }
 	soundObj.currentTime = 0;
 	soundObj.play();
+}
+
+var isDebug = function() {
+	return (window.location.href.indexOf("localhost") > -1);
 }

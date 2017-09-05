@@ -10,29 +10,29 @@
 	<link rel="stylesheet" href="css/normalize.css">
 	<link rel="stylesheet" href="css/main.css">
 </head>
-<body>
+<body class="playerIsWatching">
 
 	<h1 id="gameTitle">Find Me</h1>
 
-	<div id="welcome">
+	<form action="" method="post" id="joinGameForm">
+		<input type="text" id="playerInput" placeholder="Enter Your Name" />
+		<input type="submit" class="actionbutton" id="joinGameButton" value="Join Now" />
+	</form>
 
-		<div id="players">
-			<p><strong>Players:</strong></p>
-			<ul></ul>
-			<p id="noPlayersMsg">No players connected</p>
-		</div>
-
-		<div id="joinGame">
-			<div id="joinGameMessage"></div>
-			<a class="actionbutton" id="startGameButton" href="#">Start Game!</a>
-			<form action="" method="post">
-				<input type="text" id="playerInput" placeholder="Enter Your Name" />
-				<input type="submit" class="actionbutton" id="joinGameButton" value="Join" />
-			</form>
-		</div>
-
+	<div id="gameControl" class="">
+		<div id="generalGameMessage"></div>
+		<a class="actionbutton" id="enterGameButton" href="#">I Want to Play</a>
+		<a class="actionbutton" id="startGameButton" href="#">Start</a>
+		<a class="actionbutton actionbutton-red" id="exitGameButton" href="#">Exit</a>
 	</div>
 
+	<div id="players">
+		<p><strong>Players:</strong></p>
+		<ul></ul>
+		<p id="noPlayersMsg">No players connected</p>
+	</div>
+
+	<div id="flashpadWrapper" class="isObscured">
 	<div id="flashpad">
 
 		<a class="tile" href="#"><img src="images/tile00.png" /></a>
@@ -55,6 +55,7 @@
 		<a class="tile" href="#"><img src="images/tile23.png" /></a>
 		<a class="tile" href="#"><img src="images/tile33.png" /></a>
 
+	</div>
 	</div>
 
 	<div id="turn"></div>
