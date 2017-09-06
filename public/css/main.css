@@ -111,10 +111,6 @@ body {
 	color: #929292;
 }
 
-.actionbutton.buttonIsActive {
-	display: block;
-}
-
 #players {
 	position: absolute;
 	top:60px;
@@ -187,15 +183,21 @@ body {
 	z-index:42;
 	/*transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */*/
 	height:100px;
+	text-align: center;
 }
 
 #gameControl .actionButton {
 	margin: 0 5px;
+	max-width: 400px;
+}
+
+.actionbutton.buttonIsActive {
+	display: inline-block; /* otherwise display:none */
 }
 
 #gameControl .buttonIsActive.buttonIsHalf {
 	width: calc(50% - 13px);
-	display: inline-block;
+	max-width:200px;
 }
 
 #joinGameForm {
@@ -204,6 +206,7 @@ body {
 	width:100%;
 	z-index:41;
 	transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */
+	max-width: 600px;
 }
 
 .playerWantsToJoin #joinGameForm {
@@ -238,7 +241,7 @@ body {
 	font-family: "Open Sans", sans-serif;
 	font-weight: bold;
 	text-align: center;
-	max-width:370px;
+	max-width:350px;
 	display: block;
 	border-radius: 5px 5px 0 0;
 	transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); /* easeOutQuint */
