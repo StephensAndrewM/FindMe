@@ -55,29 +55,27 @@ var GlobalGameState = {
 	Board: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
 	CurrentId: -1,
 	WinningTile: null,
+	WinsByUsername: {},
 }
 
 // These things stay on the server
 var PrivateServerState = {
 	WinningTile: { x: -1, y: -1 },
-	PressTimeout: null
+	PressTimeout: null,
+	WaitingRoomPlayers: [],
 }
 
-var MadeTheStupidJokeOnce = false;
-
-// Sockets
-io.on(ClientMessages.CONNECTION, function (socket) {
+io.on(ClientMessages.CONNECTION, function (client) {
 
 	// Initially we don't know who this client is
-	socket.username = null;
+	client.username = null;
 
 	// Greet the user with people who are already present, and whether a game is in progress
-	console.log("Emitting: " + ServerMessages.CONNECT_RESULT);
-	socket.emit(ServerMessages.CONNECT_RESULT, {
+	sendToClient(client, ServerMessages.CONNECT_RESULT, {
 		state: GlobalGameState
 	})
 
-	socket.on(ClientMessages.JOIN, function(data) {
+	client.on(ClientMessages.JOIN, function(data) {
 		console.log("Received: " + ClientMessages.JOIN);
 
 		// Define data format, check for bad input
@@ -92,54 +90,47 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 
 		var sanitizedName = data.name.substring(0,20).toUpperCase();
 
-		// Can't join a game already in progress
-		if (GlobalGameState.GameInProgress) {
-			console.log("join: Game already in progress");
-			console.log("Sending: " + ServerMessages.JOIN_RESULT);
-			socket.emit(ServerMessages.JOIN_RESULT, { 
-				success: false, 
-				message: 'A game is already in progress!',
-				state: GlobalGameState
-			});
-
-		// Ensure no duplicate usernames
-		} else if (GlobalGameState.Players.indexOf(sanitizedName) !== -1) {
+		if (GlobalGameState.Players.indexOf(sanitizedName) !== -1
+			|| PrivateServerState.WaitingRoomPlayers.indexOf(sanitizedName) !== -1) {
 			console.log("join: Player name already registered");
-			console.log("Sending: " + ServerMessages.JOIN_RESULT);
-			socket.emit(ServerMessages.JOIN_RESULT, {
+			sendToClient(client, ServerMessages.JOIN_RESULT, {
 				success: false,
 				message: 'That name is already taken!',
 				state: GlobalGameState
 			});
 
-		// If good name, put into players list and respond happily
+		// If good name, put into appropriate players list and respond happily
 		} else {
 
-			var StupidJokeMessage = 
-				(!MadeTheStupidJokeOnce && sanitizedName == "GIA") ? "NO GIA BAD NUMBER!" : "";
-			MadeTheStupidJokeOnce = true;
-
-			GlobalGameState.Players.push(sanitizedName);
-			console.log("Sending: " + ServerMessages.JOIN_RESULT);
-			socket.emit(ServerMessages.JOIN_RESULT, {
+			if (!GlobalGameState.GameInProgress) {
+				GlobalGameState.Players.push(sanitizedName);
+				message = "";
+			} else {
+				PrivateServerState.WaitingRoomPlayers.push(sanitizedName);
+				message = "Joined Waiting Room!";
+			}
+			
+			// Tell the client they connected successfully
+			sendToClient(client, ServerMessages.JOIN_RESULT, {
 				success: true,
 				name: sanitizedName,
-				message: StupidJokeMessage,
+				message: message,
 				state: GlobalGameState
 			});
-			// Associate this string with the socket so we know who disconnected
-			socket.username = sanitizedName
+
+			// Associate this string with the client so we know who disconnected
+			client.username = sanitizedName;
+			console.log("Client " + client.id + " assigned username " + sanitizedName);
 
 			// Tell everyone to update their players list
-			console.log("Sending: " + ServerMessages.PLAYER_LIST_UPDATE);
-			io.emit(ServerMessages.PLAYER_LIST_UPDATE, {
+			sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE, {
 				state: GlobalGameState
 			});
 		}
 
 	})
 
-	socket.on(ClientMessages.START, function(data) {
+	client.on(ClientMessages.START, function(data) {
 		console.log("Received: " + ClientMessages.START);
 
 		// Data is empty, no need to check schema
@@ -153,15 +144,14 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 		initializeGame();
 
 		// Notify all players, including player that pressed the start button
-		console.log("Sending: " + ServerMessages.GAME_START);
-		io.emit(ServerMessages.GAME_START, {
+		sendToAllClients(ServerMessages.GAME_START, {
 			state: GlobalGameState
 		});
 		expectPress(STANDARD_TIMEOUT + 3);
 
 	})
 
-	socket.on(ClientMessages.PRESS, function(data) {
+	client.on(ClientMessages.PRESS, function(data) {
 		console.log("Received: " + ClientMessages.PRESS);
 
 		// Define data format, check for bad input
@@ -184,7 +174,7 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 		}
 
 		// Lots more validation
-		if (socket.username != GlobalGameState.Players[GlobalGameState.CurrentId]) {
+		if (client.username != GlobalGameState.Players[GlobalGameState.CurrentId]) {
 			console.log("press: Received player data out of turn");
 			return;
 		}
@@ -206,15 +196,15 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 			// Copy the winning tile to server state so clients can display
 			GlobalGameState.WinningTile = PrivateServerState.WinningTile;
 
+			recordWinForUser(client.username);
+
 			// Inform all players, then reset the server state
-			console.log("Sending: " + ServerMessages.VICTORY);
-			io.emit(ServerMessages.VICTORY, {
+			sendToAllClients(ServerMessages.VICTORY, {
 				state: GlobalGameState
 			});
 			resetGameState();
 			// Clear the client-side game state
-			console.log("Sending: " + ServerMessages.PLAYER_LIST_UPDATE);
-			io.emit(ServerMessages.PLAYER_LIST_UPDATE, {
+			sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE, {
 				state: GlobalGameState
 			})
 
@@ -224,8 +214,7 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 			GlobalGameState.Board[data.y][data.x] = TileState.PRESSED;
 
 			incrementPlayer();
-			console.log("Sending: " + ServerMessages.TILE_PRESS);
-			io.emit(ServerMessages.TILE_PRESS, {
+			sendToAllClients(ServerMessages.TILE_PRESS, {
 				state: GlobalGameState
 			});
 
@@ -234,15 +223,28 @@ io.on(ClientMessages.CONNECTION, function (socket) {
 
 	})
 
-	socket.on(ClientMessages.EXIT, function(data) {
-		gameExitHandler(socket);
+	client.on(ClientMessages.EXIT, function(data) {
+		gameExitHandler(client);
 	});
 
-	socket.on(ClientMessages.DISCONNECT, function(data) {
-		gameExitHandler(socket);
+	client.on(ClientMessages.DISCONNECT, function(data) {
+		gameExitHandler(client);
 	})
 
 });
+
+// Socket.io helper methods
+var sendToClient = function(client, messageType, data) {
+	console.log("Sending " + messageType + " to Client " + client.id + " with Data:");
+	console.log(JSON.stringify(data, null, 2));
+	client.emit(messageType, data);
+}
+
+var sendToAllClients = function(messageType, data) {
+	console.log("Sending " + messageType + " to All Clients with Data:");
+	console.log(JSON.stringify(data, null, 2));
+	io.emit(messageType, data);
+}
 
 var initializeGame = function() {
 	GlobalGameState.GameInProgress = true;
@@ -263,6 +265,12 @@ var initializeGame = function() {
 var resetGameState = function() {
 	GlobalGameState.GameInProgress = false;
 	GlobalGameState.CurrentId = null;
+
+	// Move players from waiting list to main player list
+	PrivateServerState.WaitingRoomPlayers.map(function(name) {
+		GlobalGameState.Players.push(name);
+	})
+	PrivateServerState.WaitingRoomPlayers = [];
 }
 
 var incrementPlayer = function() {
@@ -274,8 +282,6 @@ var expectPress = function(seconds) {
 	clearTimeout(PrivateServerState.PressTimeout);
 	var timeStamp = Math.floor(Date.now() / 1000);
 	console.log("Setting timeout at " + timeStamp);
-
-	console.log(seconds * 1000);
 
 	PrivateServerState.PressTimeout = setTimeout(function() {
 
@@ -291,8 +297,7 @@ var expectPress = function(seconds) {
 
 		// Notify players and restart game
 		resetGameState();
-		console.log("Sending: " + ServerMessages.GAME_RESET);
-		io.emit(ServerMessages.GAME_RESET, {
+		sendToAllClients(ServerMessages.GAME_RESET, {
 			message: username + " Took Too Long!",
 			state: GlobalGameState
 		});
@@ -300,31 +305,47 @@ var expectPress = function(seconds) {
 	}, seconds * 1000);
 }
 
-var gameExitHandler = function(socket) {
+var gameExitHandler = function(client) {
 	console.log("Received: " + ClientMessages.DISCONNECT);
 
 	// If client never joined, we don't need to do anything
-	if (socket.username == null) {
+	if (client.username == null) {
 		return;
 	}
 
-	// Find the user in the players list
-	var index = GlobalGameState.Players.indexOf(socket.username);
-	if (index > -1) { GlobalGameState.Players.splice(index, 1); }
+	// Remove from either player list or waiting room as applicable
+	var index = GlobalGameState.Players.indexOf(client.username);
+	var playerWasInWaitingRoom = true;
+	if (index > -1) { 
+		GlobalGameState.Players.splice(index, 1);
+		playerWasInWaitingRoom = false;
+	} else {
+		PrivateServerState.WaitingRoomPlayers.splice(index, 1);
+	}
 
-	if (GlobalGameState.GameInProgress) {
+	// If no players left, empty the WinsByUsername
+	if (GlobalGameState.Players.length == 0) {
+		GlobalGameState.WinsByUsername = [];
+	}
+
+	if (GlobalGameState.GameInProgress && !playerWasInWaitingRoom) {
 		// Restart the game if someone leaves
 		resetGameState();
-		console.log("Sending: " + ServerMessages.GAME_RESET);
-		io.emit(ServerMessages.GAME_RESET, {
-			message: socket.username + " Disconnected!",
+		sendToAllClients(ServerMessages.GAME_RESET, {
+			message: client.username + " Disconnected!",
 			state: GlobalGameState
 		});
 	} else {
 		// Just remove the player from the list
-		console.log("Sending: " + ServerMessages.PLAYER_LIST_UPDATE);
-		io.emit(ServerMessages.PLAYER_LIST_UPDATE, {
+		sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE, {
 			state: GlobalGameState
 		})
 	}
+}
+
+var recordWinForUser = function(username) {
+	if (!(username in GlobalGameState.WinsByUsername)) {
+		GlobalGameState.WinsByUsername[username] = 0;
+	}
+	GlobalGameState.WinsByUsername[username]++;
 }

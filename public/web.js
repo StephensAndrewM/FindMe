@@ -85,6 +85,9 @@ var PrivateLocalState = {
 	WelcomeErrorMessage: null
 }
 
+// In case of server disconnection we reset everything (mainly for debugging)
+var BasePrivateLocalState = null;
+
 $(function() {
 
 	var socket = io();
@@ -93,6 +96,10 @@ $(function() {
 
 	// Server sends data about its state upon connection
 	socket.on(ServerMessages.CONNECT_RESULT, function(data) {
+
+		// In case we lost connection to server, reset local state
+		PrivateLocalState = JSON.parse(JSON.stringify(BasePrivateLocalState));
+
 		updateGlobalGameState(data);
 
 		if (GlobalGameState.GameInProgress) {
@@ -102,7 +109,7 @@ $(function() {
 		renderPlayerList();
 		renderControlButtons();
 		renderJoinBox();
-		// Initialize title screen flashing
+		// Initialize title screen flashing if applicable
 		renderGrid();
 
 	})
@@ -157,8 +164,15 @@ $(function() {
 
 			PrivateLocalState.PlayerViewState = PlayerStateOptions.HAS_JOINED;
 			renderJoinBox();
-			renderControlButtons([ControlButtons.START, ControlButtons.EXIT]);
-			// This clears the message if it's no longer applicable
+			renderGrid();
+			
+			if (GlobalGameState.GameInProgress) {
+				renderControlButtons([ControlButtons.EXIT]);
+			} else {
+				renderControlButtons([ControlButtons.START, ControlButtons.EXIT]);	
+			}
+			
+			// There may be no message here but display just in case
 			displayTemporaryErrorMessage(data.message);
 
 		} else {
@@ -296,7 +310,13 @@ $(function() {
 		console.log("Attempting to disconnect");
 		PrivateLocalState.PlayerName = null;
 		socket.emit(ClientMessages.EXIT, {});
-		showWelcomeScreen();
+		// TODO this is a mess because rendering the screen is dumb
+		if (!GlobalGameState.GameInProgress) {
+			showWelcomeScreen();
+		} else {
+			renderControlButtons([ControlButtons.ENTER]);
+			PrivateLocalState.PlayerViewState = PlayerStateOptions.WATCHING;
+		}
 		return false;
 	});
 
@@ -359,9 +379,6 @@ var hideWelcomeScreen = function() {
 }
 
 var renderGrid = function() {
-
-	// TODO render grid differently when on title screen
-	// TODO render grid differently when on starting screen
 
 	// Don't display current player or update grid if game starting, ending, or not in progress
 	if (PrivateLocalState.GameStartTileFlash 
@@ -461,6 +478,9 @@ var updateGlobalGameState = function(data) {
 }
 
 var init = function() {
+
+	// Copy of default PrivateLocalState in case we lose connection to server
+	BasePrivateLocalState = JSON.parse(JSON.stringify(PrivateLocalState));
 
 	// Initialize the data attributes on grid tiles only once
 	for (var y = 0; y < 4; y++) {
