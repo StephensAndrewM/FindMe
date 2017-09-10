@@ -4,15 +4,21 @@ var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var validate = require('jsonschema').validate;
+var forcedomain = require('forcedomain');
 
 var port = process.env.PORT || 3000;
 server.listen(port, function () {
 	console.log('Server listening at port %d', port);
 });
 
-// Routing
+// Allow access to static components
 app.use(express.static(__dirname + '/public'));
 app.use("/bower_components/", express.static(__dirname+"/bower_components"));
+
+// Don't allow access to site at herokuapp.com URL
+app.use(forcedomain({
+  hostname: 'lets.playfind.me'
+}));
 
 // Constants
 var TileState = {
