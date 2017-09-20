@@ -11,14 +11,14 @@ server.listen(port, function () {
 	console.log('Server listening at port %d', port);
 });
 
-// Allow access to static components
-app.use(express.static(__dirname + '/public'));
-app.use("/bower_components/", express.static(__dirname+"/bower_components"));
-
 // Don't allow access to site at herokuapp.com URL
 app.use(forcedomain({
   hostname: 'lets.playfind.me'
 }));
+
+// Allow access to static components
+app.use(express.static(__dirname + '/public'));
+app.use("/bower_components/", express.static(__dirname+"/bower_components"));
 
 // Constants
 var TileState = {

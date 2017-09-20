@@ -486,7 +486,7 @@ var renderCountdown = function(display) {
 			}
 			$('#countdown').toggleClass('isTimeCritical', PrivateLocalState.CountdownSeconds <= 3);
 		}
-		PrivateLocalState.CountdownInterval = setInterval(updateCountdownNumber, 700);
+		PrivateLocalState.CountdownInterval = setInterval(updateCountdownNumber, 1000);
 		document.getElementById('countdown-animation').beginElement();
 		updateCountdownNumber();
 	}
