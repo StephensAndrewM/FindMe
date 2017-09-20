@@ -325,7 +325,7 @@ var gameExitHandler = function(client) {
 
 	// If no players left, empty the WinsByUsername
 	if (GlobalGameState.Players.length == 0) {
-		GlobalGameState.WinsByUsername = [];
+		GlobalGameState.WinsByUsername = {};
 	}
 
 	if (GlobalGameState.GameInProgress && !playerWasInWaitingRoom) {

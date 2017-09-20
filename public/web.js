@@ -74,6 +74,7 @@ var GlobalGameState = {
 	Board: null,
 	CurrentId: -1,
 	WinningTile: null,
+	WinsByUsername: {}
 }
 
 var PrivateLocalState = {
@@ -82,7 +83,9 @@ var PrivateLocalState = {
 	ControlButtonsToDisplay: [ControlButtons.ENTER],
 	GameStartTileFlash: false,
 	GameWinTileFlash: false,
-	WelcomeErrorMessage: null
+	WelcomeErrorMessage: null,
+	CountdownSeconds: -1,
+	CountdownInterval: null
 }
 
 // In case of server disconnection we reset everything (mainly for debugging)
@@ -345,6 +348,11 @@ var renderPlayerList = function() {
 	$('#players ul').html('');
 	GlobalGameState.Players.map(function(name) {
 		var playerItem = $('<li></li>').text(name);
+		if (GlobalGameState.WinsByUsername.hasOwnProperty(name)
+			&& GlobalGameState.WinsByUsername[name] > 0) {
+			var winCount = $('<span></span>').text(GlobalGameState.WinsByUsername[name]);
+			playerItem.append(winCount);
+		}
 		$('#players ul').append(playerItem);
 	})
 
@@ -399,8 +407,9 @@ var renderGridNotInGame = function() {
 
 	console.log("NotInGame Render");
 
+	renderCountdown(false);
+
 	// Game-winning tile flash prevents normal rendering
-	// Display 
 	if (PrivateLocalState.GameWinTileFlash) {
 		for (var y = 0; y < 4; y++) {
 			for (var x = 0; x < 4; x++) {
@@ -456,6 +465,31 @@ var renderGridInGame = function() {
 		$('#turn').text("Waiting for " + currentPlayerName + "...").removeClass('highlight');
 	}
 
+	renderCountdown(true);
+
+}
+
+var renderCountdown = function(display) {
+	$('#countdown').toggleClass('isCountingDown', display);
+	if (PrivateLocalState.CountdownInterval != null) {
+		clearTimeout(PrivateLocalState.CountdownInterval);
+	}
+	if (display) {
+		PrivateLocalState.CountdownSeconds = 11;
+		var updateCountdownNumber = function() {
+			PrivateLocalState.CountdownSeconds--;
+			if (PrivateLocalState.CountdownSeconds < 1) {
+				// Just in case
+				$('#countdown-number').text("");	
+			} else {
+				$('#countdown-number').text(PrivateLocalState.CountdownSeconds);
+			}
+			$('#countdown').toggleClass('isTimeCritical', PrivateLocalState.CountdownSeconds <= 3);
+		}
+		PrivateLocalState.CountdownInterval = setInterval(updateCountdownNumber, 700);
+		document.getElementById('countdown-animation').beginElement();
+		updateCountdownNumber();
+	}
 }
 
 var displayTemporaryErrorMessage = function(msg) {

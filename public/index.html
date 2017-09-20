@@ -27,6 +27,20 @@
 
 	<h1 id="gameTitle">Find Me</h1>
 
+	<div id="countdown">
+		<div id="countdown-number">X</div>
+		<svg>
+			<circle r="18" cx="20" cy="20">
+				<animate attributeType="CSS"
+					attributeName="stroke-dashoffset"
+					from="0px" to="113px" dur="10s"
+					repeatCount="0"
+					fill="freeze"
+					id="countdown-animation" />
+			</circle>
+		</svg>
+	</div>
+
 	<form action="" method="post" id="joinGameForm">
 		<input type="text" id="playerInput" placeholder="Enter Your Name" />
 		<input type="submit" class="actionbutton" id="joinGameButton" value="Join Now" />
