@@ -27,7 +27,7 @@ var TileState = {
 	WINNING: 2
 };
 
-var STANDARD_TIMEOUT = 10;
+var PRESS_TIMEOUT = 10;
 
 var ClientMessages = {
 	JOIN: "join",
@@ -63,6 +63,7 @@ var PrivateServerState = {
 	WinningTile: { x: -1, y: -1 },
 	PressTimeout: null,
 	WaitingRoomPlayers: [],
+    WinnersListTimeout: null,
 }
 
 io.on(ClientMessages.CONNECTION, function (client) {
@@ -147,7 +148,8 @@ io.on(ClientMessages.CONNECTION, function (client) {
 		sendToAllClients(ServerMessages.GAME_START, {
 			state: GlobalGameState
 		});
-		expectPress(STANDARD_TIMEOUT + 3);
+        // Add a bonus 3 seconds since the players can't interact with the game then
+		expectPress(PRESS_TIMEOUT + 3);
 
 	})
 
@@ -218,7 +220,7 @@ io.on(ClientMessages.CONNECTION, function (client) {
 				state: GlobalGameState
 			});
 
-			expectPress(STANDARD_TIMEOUT);
+			expectPress(PRESS_TIMEOUT);
 		}
 
 	})
@@ -271,6 +273,7 @@ var resetGameState = function() {
 		GlobalGameState.Players.push(name);
 	})
 	PrivateServerState.WaitingRoomPlayers = [];
+    clearTimeout(PrivateServerState.PressTimeout);
 }
 
 var incrementPlayer = function() {
@@ -323,11 +326,6 @@ var gameExitHandler = function(client) {
 		PrivateServerState.WaitingRoomPlayers.splice(index, 1);
 	}
 
-	// If no players left, empty the WinsByUsername
-	if (GlobalGameState.Players.length == 0) {
-		GlobalGameState.WinsByUsername = {};
-	}
-
 	if (GlobalGameState.GameInProgress && !playerWasInWaitingRoom) {
 		// Restart the game if someone leaves
 		resetGameState();
@@ -348,4 +346,13 @@ var recordWinForUser = function(username) {
 		GlobalGameState.WinsByUsername[username] = 0;
 	}
 	GlobalGameState.WinsByUsername[username]++;
+
+    // Persist the winners list for 20 hours
+    clearTimeout(PrivateServerState.WinnersListTimeout);
+    PrivateServerState.WinnersListTimeout = setTimeout(function() {
+        GlobalGameState.WinsByUsername = {}
+        sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE, {
+            state: GlobalGameState
+        })
+    }, 20 * 60 * 60 * 1000)
 }

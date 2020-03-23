@@ -6,6 +6,7 @@ var TileState = {
 };
 
 var STANDARD_TIMEOUT = 10;
+var PLAYER_STORAGE_KEY = 'playerName'
 
 var ClientMessages = {
 	JOIN: "join",
@@ -163,6 +164,7 @@ $(function() {
 
 			// Save the name after server has confirmed success
 			PrivateLocalState.PlayerName = data.name;
+            localStorage.setItem(PLAYER_STORAGE_KEY, data.name)
 			renderPlayerList();
 
 			PrivateLocalState.PlayerViewState = PlayerStateOptions.HAS_JOINED;
@@ -313,7 +315,7 @@ $(function() {
 		console.log("Attempting to disconnect");
 		PrivateLocalState.PlayerName = null;
 		socket.emit(ClientMessages.EXIT, {});
-		// TODO this is a mess because rendering the screen is dumb
+
 		if (!GlobalGameState.GameInProgress) {
 			showWelcomeScreen();
 		} else {
@@ -322,6 +324,11 @@ $(function() {
 		}
 		return false;
 	});
+
+    // Pre-populate the username from localStorage if possible
+    if (localStorage.getItem(PLAYER_STORAGE_KEY) !== null) {
+        $('#playerInput').val(localStorage.getItem(PLAYER_STORAGE_KEY));
+    }
 
 });
 
@@ -344,22 +351,35 @@ var renderJoinBox = function() {
 
 var renderPlayerList = function() {
 
-	// Truncate Players List, then Recreate List
-	$('#players ul').html('');
+	// Truncate existing players list then replace with current list
+	$('ul#playersList').html('');
 	GlobalGameState.Players.map(function(name) {
 		var playerItem = $('<li></li>').text(name);
-		if (GlobalGameState.WinsByUsername.hasOwnProperty(name)
-			&& GlobalGameState.WinsByUsername[name] > 0) {
-			var winCount = $('<span></span>').text(GlobalGameState.WinsByUsername[name]);
-			playerItem.append(winCount);
-		}
-		$('#players ul').append(playerItem);
+		$('ul#playersList').append(playerItem);
 	})
+    // Hide the list if there's nothing to display
+    $('ul#playersList').toggle(GlobalGameState.Players.length > 0);
+    // Show the empty list message if there are no players
+	$('#noPlayersMsg').toggle(GlobalGameState.Players.length == 0);
+
+    // Get list of winners, sorted by number of wins
+    var winners = Object.keys(GlobalGameState.WinsByUsername).sort(function(a,b) {
+        return GlobalGameState.WinsByUsername[b] - GlobalGameState.WinsByUsername[a]
+    });
+    // Hide the title if there's nothing to display
+    $('#winnersListTitle').toggle(winners.length > 0);
+    // Truncate existing winners list then replace with current list
+    $('ul#winnersList').html('')
+    winners.map(function(name) {
+        var winnerItem = $('<li></li>').text(name);
+		var winCount = $('<span></span>').text(GlobalGameState.WinsByUsername[name]);
+		winnerItem.append(winCount);
+        $('ul#winnersList').append(winnerItem);
+    })
 
 	// Only allow starting game if player has joined and 2 or more players
 	$('#startGameButton').toggleClass('disabled', 
 		(GlobalGameState.Players.length <= 1 || PrivateLocalState.PlayerName == null));
-	$('#noPlayersMsg').toggle(GlobalGameState.Players.length < 1);
 
 	if (PrivateLocalState.WelcomeErrorMessage != null) {
 		$('#generalGameMessage').text(PrivateLocalState.WelcomeErrorMessage);
@@ -397,10 +417,9 @@ var renderGrid = function() {
 		renderGridInGame();
 	}
 
-	$('#flashpadWrapper').toggleClass('isObscured', 
-		!GlobalGameState.GameInProgress 
+	$('body').toggleClass('onTitleScreen', 
+		!GlobalGameState.GameInProgress
 		|| PrivateLocalState.PlayerViewState == PlayerStateOptions.WANTS_TO_JOIN)
-
 }
 
 var renderGridNotInGame = function() {
@@ -554,7 +573,7 @@ var renderControlButtons = function(buttons) {
 
 		// Re-display the bar once buttons have been modified
 		$('#gameControl').animate({
-			bottom: '10px'
+			bottom: '0px'
 		}, 200)
 
 	})

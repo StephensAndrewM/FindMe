@@ -4,7 +4,7 @@ body, html {
 
 body {
 	background: black;
-	max-width: 600px;
+	max-width: 500px;
 	margin: 0 auto;
 	overflow: hidden;
 	position: relative;
@@ -18,7 +18,7 @@ body {
 	overflow: auto;
 }
 
-#flashpadWrapper.isObscured {
+.onTitleScreen #flashpadWrapper {
 	opacity:0.2;
 	filter: blur(2px);
 }
@@ -66,19 +66,19 @@ body {
 
 @keyframes green-gray-blink {
 	0%, 49% {
-	    background-color: #10ff00 ;
+		background-color: #10ff00 ;
 	}
 	50%, 100% {
-	    background-color: #9e9e9e;
+		background-color: #9e9e9e;
 	}
 }
 
 @keyframes red-gray-blink {
 	0%, 49% {
-	    background-color: #FF3D3D;;
+		background-color: #FF3D3D;;
 	}
 	50%, 100% {
-	    background-color: #9e9e9e;
+		background-color: #9e9e9e;
 	}
 }
 
@@ -115,15 +115,17 @@ body {
 
 #players {
 	position: absolute;
-	top:90px;
-	left:0;
-	width:100%;
-	height:calc(100% - 60px);
-	opacity:1;
-	z-index:40;
+	top: 70px;
+	left: 0;
+	width: 100%;
+	height: calc(100% - 60px - 90px);
+	opacity: 1;
+	z-index: 40;
 	color: white;
 	font-family: "Open Sans", sans-serif;
 	transition: 0.5s all cubic-bezier(0.25, 0.46, 0.45, 0.94); /* easeOutQuad */
+	overflow-x: hidden;
+	overflow-y: scroll;
 }
 
 #players.offscreen {
@@ -133,35 +135,43 @@ body {
 
 #players ul {
 	padding-left:0;
+	margin:10px 0;
 }
 
-#players p, #players li {
+#players p, #players li, #players h2 {
 	margin: 4px 0;
 	font-size: 20px;
 	text-align: center;
 	font-weight: bold;
 	list-style-type: none;
 	text-transform: uppercase;
-	transition: opacity 0.1s ease;
 }
 
 #players li span {
 	font-size: 16px;
-    display: inline-block;
-    background: #9e9e9e;
-    color: #000000;
-    padding: 0px 3px;
-    margin-left: 6px;
-    border-radius: 3px;
+	display: inline-block;
+	background: #0cbb00;
+	color: white;
+	padding: 0px 8px;
+	margin-left: 6px;
+	border-radius: 3px;
+	position: relative;
+	top: -1px;
 }
 
-#players strong {
-	color: #00E200;
+#players h2 {
 	font-size:24px;
-	text-transform: uppercase;
 }
 
-.playerWantsToJoin #players li, .playerWantsToJoin #players p {
+h2#playersListTitle {
+	color: #FF3D3D;
+}
+
+h2#winnersListTitle {
+	color: #00E200;
+}
+
+.playerWantsToJoin #players {
 	opacity: 0;
 }
 
@@ -179,15 +189,13 @@ body {
 	width: 100%;
 	height:60px;
 	font-family: "Passion One", sans-serif;
-    text-transform: uppercase;
-    font-size: 55px;
-    margin-bottom: 8px;
-    font-weight: normal;
-    letter-spacing: 2px;
-}
-
-#players .gameTitle {
-	display: none;		/* For short screens only */
+	text-transform: uppercase;
+	font-size: 55px;
+	margin-bottom: 8px;
+	font-weight: normal;
+	letter-spacing: 2px;
+	transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); /* easeOutQuint */
+	overflow: hidden; /* Needed when this is hidden for small screens. */
 }
 
 #gameControl {
@@ -196,8 +204,8 @@ body {
 	width: calc(100% - 10px);
 	left: 5px;
 	z-index:42;
-	/*transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */*/
-	height:100px;
+	transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */
+	height:90px;
 	text-align: center;
 }
 
@@ -233,7 +241,7 @@ body {
 	position: relative;
 	display: block;
 	width: calc(100% - 20px);
-    margin: 0 auto;
+	margin: 0 auto;
 }
 
 #joinGameMessage, #generalGameMessage {
@@ -303,9 +311,9 @@ body {
 	top:10px;
 	right:10px;
 	height: 40px;
-  	width: 40px;
-  	text-align: center;
-  	display: none;
+	width: 40px;
+	text-align: center;
+	display: none;
 }
 
 #countdown.isCountingDown {
@@ -314,12 +322,12 @@ body {
 
 @keyframes red-white-blink {
 	0%, 49% {
-	    color: #FF3D3D;
-	    stroke: #FF3D3D;
+		color: #FF3D3D;
+		stroke: #FF3D3D;
 	}
 	50%, 100% {
-	    color: #ffffff;
-	    stroke: #ffffff;
+		color: #ffffff;
+		stroke: #ffffff;
 	}
 }
 
@@ -357,21 +365,23 @@ svg circle {
 	fill: none;
 }
 
+/* Larger screens can have a wider game board */
+@media screen and (min-height: 800px) {
+	body {
+		max-width: 600px;
+	}
+}
+
+/* Short screens need to hide the title while in-game. */
 @media screen and (max-height: 500px) {
 	#gameTitlePersistent {
-		display: none;
+		height:0;
 	}
-	#players .gameTitle {
-		display: block;
+	.onTitleScreen #gameTitlePersistent {
+		height:auto;
 	}
-	#players {
-		top:0;
-	}
-	#flashpad {
-		margin-top:10px;
-	}
-	#turn {
-		margin-top:10px;
+	#gameControl {
+		bottom: 0px;
 	}
 	#countdown.isCountingDown {
 		display: none;
