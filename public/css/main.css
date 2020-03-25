@@ -1,3 +1,11 @@
+@font-face {
+    font-family: 'Opti Majer Irregular';
+    src: url('/css/optimajerirregular-webfont.woff2') format('woff2'),
+         url('/css/optimajerirregular-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
 body, html {
 	height: 100%;
 }
@@ -86,13 +94,12 @@ body {
 	margin: 5px;
 	width: calc(100% - 10px);
 	padding: 11px 0 8px;
-	font-family: "Passion One", sans-serif;
+	font-family: 'Opti Majer Irregular', sans-serif;
 	font-size: 29px;
 	background: #0cbb00;
 	box-shadow: 0px 5px 0px #00651a;
 	border: 0;
 	text-transform: uppercase;
-	letter-spacing: 1px;
 	color: #EAEAEA;
 	text-align: center;
 	text-decoration: none;
@@ -128,6 +135,16 @@ body {
 	overflow-y: scroll;
 }
 
+/* Hide scrollbars cross-platform. */
+#players::-webkit-scrollbar {
+	display: none;
+}
+@-moz-document url-prefix() {
+	#players {
+		scrollbar-width: none;
+	}
+}
+
 #players.offscreen {
 	top:100%;
 	opacity:0;
@@ -160,7 +177,9 @@ body {
 }
 
 #players h2 {
-	font-size:24px;
+	font-family: 'Opti Majer Irregular', sans-serif;
+	font-size:30px;
+	font-weight: normal;
 }
 
 h2#playersListTitle {
@@ -184,16 +203,14 @@ h2#winnersListTitle {
 	margin-top: 0;
 	padding-top: 5px;
 	color: white;
-	font-size:24px;
 	text-align: center;
 	width: 100%;
 	height:60px;
-	font-family: "Passion One", sans-serif;
+	font-family: 'Opti Majer Irregular', sans-serif;
 	text-transform: uppercase;
 	font-size: 55px;
 	margin-bottom: 8px;
 	font-weight: normal;
-	letter-spacing: 2px;
 	transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); /* easeOutQuint */
 	overflow: hidden; /* Needed when this is hidden for small screens. */
 }
@@ -205,7 +222,6 @@ h2#winnersListTitle {
 	left: 5px;
 	z-index:42;
 	transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */
-	height:90px;
 	text-align: center;
 }
 
@@ -225,7 +241,7 @@ h2#winnersListTitle {
 
 #joinGameForm {
 	position: absolute;
-	top:-100px;
+	top:-110px;
 	width:100%;
 	z-index:41;
 	transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */
@@ -294,7 +310,7 @@ h2#winnersListTitle {
 
 #turn {
 	color: white;
-	font-family: "Passion One", sans-serif;
+	font-family: 'Opti Majer Irregular', sans-serif;
 	text-transform: uppercase;
 	font-size: 24px;
 	text-align: center;
@@ -343,7 +359,7 @@ h2#winnersListTitle {
 	color: white;
 	display: inline-block;
 	line-height: 40px;
-	font-family: "Passion One", sans-serif;
+	font-family: 'Opti Majer Irregular', sans-serif;
 	font-size: 24px;
 }
 
@@ -378,10 +394,7 @@ svg circle {
 		height:0;
 	}
 	.onTitleScreen #gameTitlePersistent {
-		height:auto;
-	}
-	#gameControl {
-		bottom: 0px;
+		height:60px;
 	}
 	#countdown.isCountingDown {
 		display: none;

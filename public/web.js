@@ -494,16 +494,16 @@ var renderCountdown = function(display) {
 		clearTimeout(PrivateLocalState.CountdownInterval);
 	}
 	if (display) {
-		PrivateLocalState.CountdownSeconds = 11;
+		PrivateLocalState.CountdownSeconds = 10;
 		var updateCountdownNumber = function() {
 			PrivateLocalState.CountdownSeconds--;
-			if (PrivateLocalState.CountdownSeconds < 1) {
+			if (PrivateLocalState.CountdownSeconds < 0) {
 				// Just in case
 				$('#countdown-number').text("");	
 			} else {
 				$('#countdown-number').text(PrivateLocalState.CountdownSeconds);
 			}
-			$('#countdown').toggleClass('isTimeCritical', PrivateLocalState.CountdownSeconds <= 3);
+			$('#countdown').toggleClass('isTimeCritical', PrivateLocalState.CountdownSeconds <= 2);
 		}
 		PrivateLocalState.CountdownInterval = setInterval(updateCountdownNumber, 1000);
 		document.getElementById('countdown-animation').beginElement();
@@ -573,7 +573,7 @@ var renderControlButtons = function(buttons) {
 
 		// Re-display the bar once buttons have been modified
 		$('#gameControl').animate({
-			bottom: '0px'
+			bottom: '10px'
 		}, 200)
 
 	})
