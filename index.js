@@ -199,10 +199,10 @@ io.on(ClientMessages.CONNECTION, function (client) {
 			GlobalGameState.WinningTile = PrivateServerState.WinningTile;
 
 			// Record a win for the user in the in-memory scoreboard
-			if (!(username in GlobalGameState.WinsByUsername)) {
-				GlobalGameState.WinsByUsername[username] = 0;
+			if (!(client.username in GlobalGameState.WinsByUsername)) {
+				GlobalGameState.WinsByUsername[client.username] = 0;
 			}
-			GlobalGameState.WinsByUsername[username]++;
+			GlobalGameState.WinsByUsername[client.username]++;
 
 			// Don't allow another game to start for a few seconds
 			// to allow player UIs to catch up (and also for moderation).
