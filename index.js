@@ -28,6 +28,7 @@ var TileState = {
 };
 
 var PRESS_TIMEOUT = 10;
+var GAME_SPACER_TIMEOUT = 10;
 
 var ClientMessages = {
 	JOIN: "join",
@@ -51,6 +52,7 @@ var ServerMessages = {
 // State shared between client and server
 var GlobalGameState = {
 	GameInProgress: false,
+	CanStartNewGame: true,
 	Players: [],
 	Board: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],
 	CurrentId: -1,
@@ -62,8 +64,7 @@ var GlobalGameState = {
 var PrivateServerState = {
 	WinningTile: { x: -1, y: -1 },
 	PressTimeout: null,
-	WaitingRoomPlayers: [],
-    WinnersListTimeout: null,
+	GameSpacerTimeout: null,
 }
 
 io.on(ClientMessages.CONNECTION, function (client) {
@@ -77,7 +78,7 @@ io.on(ClientMessages.CONNECTION, function (client) {
 	})
 
 	client.on(ClientMessages.JOIN, function(data) {
-		console.log("Received: " + ClientMessages.JOIN);
+		logIncoming(client, ClientMessages.JOIN);
 
 		// Define data format, check for bad input
 		var schema = {
@@ -91,8 +92,7 @@ io.on(ClientMessages.CONNECTION, function (client) {
 
 		var sanitizedName = data.name.substring(0,20).toUpperCase();
 
-		if (GlobalGameState.Players.indexOf(sanitizedName) !== -1
-			|| PrivateServerState.WaitingRoomPlayers.indexOf(sanitizedName) !== -1) {
+		if (GlobalGameState.Players.indexOf(sanitizedName) !== -1) {
 			console.log("join: Player name already registered");
 			sendToClient(client, ServerMessages.JOIN_RESULT, {
 				success: false,
@@ -100,22 +100,22 @@ io.on(ClientMessages.CONNECTION, function (client) {
 				state: GlobalGameState
 			});
 
+		} else if (GlobalGameState.GameInProgress) {
+			console.log("join: Game in progress")
+			sendToClient(client, ServerMessages.JOIN_RESULT, {
+				success: false,
+				message: 'Wait until this game ends to join!',
+				state: GlobalGameState
+			});
+
 		// If good name, put into appropriate players list and respond happily
 		} else {
-
-			if (!GlobalGameState.GameInProgress) {
-				GlobalGameState.Players.push(sanitizedName);
-				message = "";
-			} else {
-				PrivateServerState.WaitingRoomPlayers.push(sanitizedName);
-				message = "Joined Waiting Room!";
-			}
+			GlobalGameState.Players.push(sanitizedName);
 			
 			// Tell the client they connected successfully
 			sendToClient(client, ServerMessages.JOIN_RESULT, {
 				success: true,
 				name: sanitizedName,
-				message: message,
 				state: GlobalGameState
 			});
 
@@ -124,15 +124,13 @@ io.on(ClientMessages.CONNECTION, function (client) {
 			console.log("Client " + client.id + " assigned username " + sanitizedName);
 
 			// Tell everyone to update their players list
-			sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE, {
-				state: GlobalGameState
-			});
+			sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE);
 		}
 
 	})
 
 	client.on(ClientMessages.START, function(data) {
-		console.log("Received: " + ClientMessages.START);
+		logIncoming(client, ClientMessages.START);
 
 		// Data is empty, no need to check schema
 
@@ -141,20 +139,22 @@ io.on(ClientMessages.CONNECTION, function (client) {
 			console.log("start: Game already in progress");
 			return;
 		}
+		if (!GlobalGameState.CanStartNewGame) {
+			console.log("start: Game creation disabled");
+			return;
+		}
 
 		initializeGame();
 
 		// Notify all players, including player that pressed the start button
-		sendToAllClients(ServerMessages.GAME_START, {
-			state: GlobalGameState
-		});
-        // Add a bonus 3 seconds since the players can't interact with the game then
+		sendToAllClients(ServerMessages.GAME_START);
+		// Add a bonus 3 seconds since the players can't interact with the game then
 		expectPress(PRESS_TIMEOUT + 3);
 
 	})
 
 	client.on(ClientMessages.PRESS, function(data) {
-		console.log("Received: " + ClientMessages.PRESS);
+		logIncoming(client, ClientMessages.PRESS);
 
 		// Define data format, check for bad input
 		var schema = {
@@ -198,17 +198,26 @@ io.on(ClientMessages.CONNECTION, function (client) {
 			// Copy the winning tile to server state so clients can display
 			GlobalGameState.WinningTile = PrivateServerState.WinningTile;
 
-			recordWinForUser(client.username);
+			// Record a win for the user in the in-memory scoreboard
+			if (!(username in GlobalGameState.WinsByUsername)) {
+				GlobalGameState.WinsByUsername[username] = 0;
+			}
+			GlobalGameState.WinsByUsername[username]++;
+
+			// Don't allow another game to start for a few seconds
+			// to allow player UIs to catch up (and also for moderation).
+			GlobalGameState.CanStartNewGame = false;
+			PrivateServerState.GameSpacerTimeout = setTimeout(function() {
+				GlobalGameState.CanStartNewGame = true;
+				sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE)
+			}, GAME_SPACER_TIMEOUT * 1000)
 
 			// Inform all players, then reset the server state
-			sendToAllClients(ServerMessages.VICTORY, {
-				state: GlobalGameState
-			});
+			sendToAllClients(ServerMessages.VICTORY);
+
+			// Clear the game state and push to clients
 			resetGameState();
-			// Clear the client-side game state
-			sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE, {
-				state: GlobalGameState
-			})
+			sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE)
 
 		// Else, send the updated grid and player info
 		} else {
@@ -216,9 +225,7 @@ io.on(ClientMessages.CONNECTION, function (client) {
 			GlobalGameState.Board[data.y][data.x] = TileState.PRESSED;
 
 			incrementPlayer();
-			sendToAllClients(ServerMessages.TILE_PRESS, {
-				state: GlobalGameState
-			});
+			sendToAllClients(ServerMessages.TILE_PRESS);
 
 			expectPress(PRESS_TIMEOUT);
 		}
@@ -226,10 +233,12 @@ io.on(ClientMessages.CONNECTION, function (client) {
 	})
 
 	client.on(ClientMessages.EXIT, function(data) {
+		logIncoming(client, ClientMessages.EXIT);
 		gameExitHandler(client);
 	});
 
 	client.on(ClientMessages.DISCONNECT, function(data) {
+		logIncoming(client, ClientMessages.DISCONNECT);
 		gameExitHandler(client);
 	})
 
@@ -243,6 +252,11 @@ var sendToClient = function(client, messageType, data) {
 }
 
 var sendToAllClients = function(messageType, data) {
+	if (data === undefined) {
+		data = {};
+	}
+	// Alway pass along global state
+	data.state = GlobalGameState
 	console.log("Sending " + messageType + " to All Clients with Data:");
 	console.log(JSON.stringify(data, null, 2));
 	io.emit(messageType, data);
@@ -267,13 +281,7 @@ var initializeGame = function() {
 var resetGameState = function() {
 	GlobalGameState.GameInProgress = false;
 	GlobalGameState.CurrentId = null;
-
-	// Move players from waiting list to main player list
-	PrivateServerState.WaitingRoomPlayers.map(function(name) {
-		GlobalGameState.Players.push(name);
-	})
-	PrivateServerState.WaitingRoomPlayers = [];
-    clearTimeout(PrivateServerState.PressTimeout);
+	clearTimeout(PrivateServerState.PressTimeout);
 }
 
 var incrementPlayer = function() {
@@ -281,7 +289,6 @@ var incrementPlayer = function() {
 }
 
 var expectPress = function(seconds) {
-
 	clearTimeout(PrivateServerState.PressTimeout);
 	var timeStamp = Math.floor(Date.now() / 1000);
 	console.log("Setting timeout at " + timeStamp);
@@ -302,57 +309,41 @@ var expectPress = function(seconds) {
 		resetGameState();
 		sendToAllClients(ServerMessages.GAME_RESET, {
 			message: username + " Took Too Long!",
-			state: GlobalGameState
 		});
 
 	}, seconds * 1000);
 }
 
 var gameExitHandler = function(client) {
-	console.log("Received: " + ClientMessages.DISCONNECT);
-
 	// If client never joined, we don't need to do anything
 	if (client.username == null) {
 		return;
 	}
 
-	// Remove from either player list or waiting room as applicable
+	// Save this since it will be unset momentarily
+	var username = client.username;
+	
+	// Remove the player from list of active players
 	var index = GlobalGameState.Players.indexOf(client.username);
-	var playerWasInWaitingRoom = true;
 	if (index > -1) { 
 		GlobalGameState.Players.splice(index, 1);
-		playerWasInWaitingRoom = false;
-	} else {
-		PrivateServerState.WaitingRoomPlayers.splice(index, 1);
 	}
+	client.username = null;
 
-	if (GlobalGameState.GameInProgress && !playerWasInWaitingRoom) {
-		// Restart the game if someone leaves
+	if (GlobalGameState.GameInProgress) {
+		// End game if someone leaves
 		resetGameState();
 		sendToAllClients(ServerMessages.GAME_RESET, {
-			message: client.username + " Disconnected!",
-			state: GlobalGameState
+			message: username + " Disconnected!",
 		});
 	} else {
 		// Just remove the player from the list
-		sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE, {
-			state: GlobalGameState
-		})
+		sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE)
 	}
 }
 
-var recordWinForUser = function(username) {
-	if (!(username in GlobalGameState.WinsByUsername)) {
-		GlobalGameState.WinsByUsername[username] = 0;
-	}
-	GlobalGameState.WinsByUsername[username]++;
-
-    // Persist the winners list for 20 hours
-    clearTimeout(PrivateServerState.WinnersListTimeout);
-    PrivateServerState.WinnersListTimeout = setTimeout(function() {
-        GlobalGameState.WinsByUsername = {}
-        sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE, {
-            state: GlobalGameState
-        })
-    }, 20 * 60 * 60 * 1000)
+var logIncoming = function(client, type) {
+	console.log("Received: " + type
+		+ " | Name: " + client.username
+		+ " | Id:" + client.id);
 }

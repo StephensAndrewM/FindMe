@@ -34,16 +34,12 @@ var EventSounds = {
 	WIN: null
 }
 
-var PlayerStateOptions = {
-	WATCHING: 'playerIsWatching',
-	WANTS_TO_JOIN: 'playerWantsToJoin',
-	HAS_JOINED: 'playerHasJoined'
-}
-
-var ControlButtons = {
-	START: "#startGameButton",
-	ENTER: "#enterGameButton",
-	EXIT: "#exitGameButton"
+var DisplayState = {
+	TITLE_SCREEN: 'stateTitleScreen',
+	IN_GAME: 'stateInGame',
+	NAME_PROMPT: 'stateNamePrompt',
+	WIN: 'stateWin',
+	WIN_WITH_PROMPT: 'stateWinWithPrompt',
 }
 
 // This uses a distinct namespace from TileState since there's no 
@@ -80,13 +76,14 @@ var GlobalGameState = {
 
 var PrivateLocalState = {
 	PlayerName: null,
-	PlayerViewState: PlayerStateOptions.WATCHING,
-	ControlButtonsToDisplay: [ControlButtons.ENTER],
+	IsPlayerActive: false,
+	DisplayState: DisplayState.TITLE_SCREEN,
 	GameStartTileFlash: false,
 	GameWinTileFlash: false,
-	WelcomeErrorMessage: null,
+	ErrorMessage: null,
 	CountdownSeconds: -1,
-	CountdownInterval: null
+	CountdownInterval: null,
+	WinPromptTimeout: null,
 }
 
 // In case of server disconnection we reset everything (mainly for debugging)
@@ -100,53 +97,31 @@ $(function() {
 
 	// Server sends data about its state upon connection
 	socket.on(ServerMessages.CONNECT_RESULT, function(data) {
-
-		// In case we lost connection to server, reset local state
+		// In case we lost connection to server, reset local state to default
 		PrivateLocalState = JSON.parse(JSON.stringify(BasePrivateLocalState));
 
 		updateGlobalGameState(data);
-
-		if (GlobalGameState.GameInProgress) {
-			hideWelcomeScreen();
-		}
-
-		renderPlayerList();
-		renderControlButtons();
-		renderJoinBox();
-		// Initialize title screen flashing if applicable
-		renderGrid();
-
 	})
 
-	$('#enterGameButton').click(function() {
-		// Player has just loaded page, display input box
-		PrivateLocalState.PlayerViewState = PlayerStateOptions.WANTS_TO_JOIN;
-		$('#playerInput').focus();
-		renderJoinBox();
-		renderControlButtons([]);
-		// Blur grid in case they're watching game
-		renderGrid();
+	// Player is on title screen, wants to join in the fun
+	$('#joinGameButton').click(function() {
+		PrivateLocalState.DisplayState = DisplayState.NAME_PROMPT;
+		render();
+		$('#playerInput').focus();		
 		return false;
 	})
 
-	// Join game when player presses button
-	$('#joinGameButton').click(function() {
-
-		// Fake a real disabled attribute
-		// if ($(this).hasClass('disabled')) { return false; }
-
+	// Report name and officially join game when player presses button
+	$('#setNameButton').click(function() {
 		var name = $('#playerInput').val();
 		if (name != '') {
 			console.log('Attempting to join game');
 			socket.emit(ClientMessages.JOIN, { 
 				name: name
 			});
-			// Disable button -- will be re-enabled if problem joining
-			// $('#joinGameButton').toggleClass('disabled', true);
 		}
 
 		return false;
-
 	})
 
 	// In case the form submits, do the same thing as button press
@@ -157,91 +132,80 @@ $(function() {
 
 	// Player receives acknowledgement from server after attempting to join
 	socket.on(ServerMessages.JOIN_RESULT, function(data) {
-		updateGlobalGameState(data);
+		PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
 		
 		if (data.success) {
 			console.log('Player successfully joined game');
 
-			// Save the name after server has confirmed success
 			PrivateLocalState.PlayerName = data.name;
-            localStorage.setItem(PLAYER_STORAGE_KEY, data.name)
-			renderPlayerList();
-
-			PrivateLocalState.PlayerViewState = PlayerStateOptions.HAS_JOINED;
-			renderJoinBox();
-			renderGrid();
+			PrivateLocalState.IsPlayerActive = true;
+			PrivateLocalState.ErrorMessage = null;
 			
-			if (GlobalGameState.GameInProgress) {
-				renderControlButtons([ControlButtons.EXIT]);
-			} else {
-				renderControlButtons([ControlButtons.START, ControlButtons.EXIT]);	
-			}
-			
-			// There may be no message here but display just in case
-			displayTemporaryErrorMessage(data.message);
-
+			// Save the name after server has confirmed success
+			localStorage.setItem(PLAYER_STORAGE_KEY, data.name)			
 		} else {
 			console.log('ERR: ', data.message);
-			// $('#joinGameButton').toggleClass('disabled', false);
+
 			displayTemporaryErrorMessage(data.message);
 		}
 
-
+		updateGlobalGameState(data);
 	})
 
 	// A player has joined the game somewhere else
 	socket.on(ServerMessages.PLAYER_LIST_UPDATE, function(data) {
 		updateGlobalGameState(data);
-		renderPlayerList();
 	})
 
-	$('#startGameButton').click(function() {
+	// A player pressed the exit button on title screen
+	$('#unjoinGameButton').click(function() {
+		console.log("Attempting to disconnect on title screen");
+		leaveGame(socket);
+        // Need to re-render manually here since server does not trigger an event
+		render();
+		return false;
+	});
 
-		// Fake a real disabled attribute
+	// Respond to player intent to start the game
+	$('#startGameButton').click(function() {
+		// Disabled attribute could be set if not enough players
 		if ($(this).hasClass('disabled')) { return false; }
 
 		// Notify server, then server responds with official start
 		socket.emit(ClientMessages.START, {});
 
 		return false;
-
 	});
 
 	// Server notifies that game is definitely starting
 	socket.on(ServerMessages.GAME_START, function(data) {
-		updateGlobalGameState(data);
 		PrivateLocalState.GameStartTileFlash = true;
 		window.setTimeout(function() {
 			PrivateLocalState.GameStartTileFlash = false;
-			renderGrid();
+			render();
 		}, 2000);
-		renderGrid();
 		playSound(EventSounds.START);
 
-		hideWelcomeScreen();
-
 		if (PrivateLocalState.PlayerName != null) {
-			renderControlButtons([ControlButtons.EXIT]);
-		} else {
-			renderControlButtons([ControlButtons.ENTER]);
-			// Close the join box if it's open
-			PrivateLocalState.PlayerViewState = PlayerStateOptions.WATCHING;
-			renderJoinBox();
+			PrivateLocalState.DisplayState = DisplayState.IN_GAME;
 		}
 
+		// Clear state from win screen, just in case
+		clearTimeout(PrivateLocalState.WinPromptTimeout)
+		PrivateLocalState.GameWinTileFlash = false;
 
+		updateGlobalGameState(data);
 	});
 
 	// In-game event, sent from anywhere (local or remote player)
 	socket.on(ServerMessages.TILE_PRESS, function(data) {
 		updateGlobalGameState(data);
-		renderGrid();
 		playSound(EventSounds.PRESS);
 	})
 
 	// In-game event, the local user has pressed a tile
 	$('#flashpad a.tile').click(function() {
-
+		// Don't allow interaction during animations
 		if (PrivateLocalState.GameStartTileFlash || PrivateLocalState.GameWinTileFlash) {
 			return false;
 		}
@@ -267,87 +231,83 @@ $(function() {
 		});
 
 		return false;
-
 	});
 
 	socket.on(ServerMessages.VICTORY, function(data) {
-		updateGlobalGameState(data);
-
 		PrivateLocalState.GameWinTileFlash = true;
-		renderGrid();
 		playSound(EventSounds.WIN);
-
-		window.setTimeout(function() {
-			PrivateLocalState.GameWinTileFlash = false;
-			renderGrid();
-			showWelcomeScreen();
-			renderPlayerList();
-		}, 3000);
 
 		var winningPlayerName = GlobalGameState.Players[GlobalGameState.CurrentId];
 		if (winningPlayerName == PrivateLocalState.PlayerName) {
-			$('#turn').text("You win, " + winningPlayerName + "!").addClass('highlight');
+			PrivateLocalState.DisplayState = DisplayState.WIN_WITH_PROMPT;
+			var name=$('<span></span>').text(winningPlayerName);
+			$('.winScreenMessage').html("YOU WIN,<br />").append(name).append("!");
+
+			PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
+				PrivateLocalState.GameWinTileFlash = false;
+				PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
+				leaveGame(socket);
+				render();
+			}, 10000);
+
 		} else {
-			$('#turn').text(winningPlayerName + " wins Find Me!").removeClass('highlight');
+			PrivateLocalState.DisplayState = DisplayState.WIN;
+			var name=$('<span></span>').text(winningPlayerName);
+			$('.winScreenMessage').html(name).append("<br />Wins!");
+			
+			PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
+				PrivateLocalState.GameWinTileFlash = false;
+				PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
+				render();
+			}, 5000);
+		
 		}
 
-	})
-
-	// A player disconnected or timed out
-	socket.on(ServerMessages.GAME_RESET, function(data) {
-
-		var gameWasInProgress = GlobalGameState.GameInProgress;
 		updateGlobalGameState(data);
-
-		// We'll be displaying a new player list either way
-		renderPlayerList();
-
-		// If game is running, must stop game and return to title screen
-		if (gameWasInProgress) {
-			renderGrid();
-			showWelcomeScreen();
-			displayTemporaryErrorMessage(data.message);
-		}
-
 	})
 
-	$('#exitGameButton').click(function() {
-		console.log("Attempting to disconnect");
-		PrivateLocalState.PlayerName = null;
-		socket.emit(ClientMessages.EXIT, {});
+	$('#postWinOptInButton').click(function() {
+		clearTimeout(PrivateLocalState.WinPromptTimeout);
 
-		if (!GlobalGameState.GameInProgress) {
-			showWelcomeScreen();
-		} else {
-			renderControlButtons([ControlButtons.ENTER]);
-			PrivateLocalState.PlayerViewState = PlayerStateOptions.WATCHING;
-		}
+		PrivateLocalState.GameWinTileFlash = false;
+		PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
+		render();
+
+		return false;
+	})
+
+	$('#postWinOptOutButton').click(function() {
+		clearTimeout(PrivateLocalState.WinPromptTimeout);
+		
+		PrivateLocalState.GameWinTileFlash = false;
+		PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
+		leaveGame(socket);
+		render();
+
+		return false;
+	})
+
+	// A player disconnected or timed out (could be local)
+	socket.on(ServerMessages.GAME_RESET, function(data) {
+		PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
+		displayTemporaryErrorMessage(data.message);
+		updateGlobalGameState(data);
+	})
+
+	// A player pressed the disconnect button mid-game
+	$('#exitGameButton').click(function() {
+		console.log("Attempting mid-game disconnect");
+		leaveGame(socket);
+		render();
 		return false;
 	});
 
-    // Pre-populate the username from localStorage if possible
-    if (localStorage.getItem(PLAYER_STORAGE_KEY) !== null) {
-        $('#playerInput').val(localStorage.getItem(PLAYER_STORAGE_KEY));
-    }
+	// On load-populate the username from localStorage if possible
+	if (localStorage.getItem(PLAYER_STORAGE_KEY) !== null) {
+		$('#playerInput').val(localStorage.getItem(PLAYER_STORAGE_KEY));
+	}
 
 });
-
-var renderJoinBox = function() {
-
-	// Display the correct text on join button
-	if (GlobalGameState.GameInProgress) {
-		$('#joinGameButton').val("Join Next Game");
-	} else {
-		$('#joinGameButton').val("Join Now");
-	}
-
-	// Set class that controls what join/exit buttons are displayed
-	for (var i in PlayerStateOptions) {
-		$('body').removeClass(PlayerStateOptions[i]);
-	}
-	$('body').addClass(PrivateLocalState.PlayerViewState);
-
-}
 
 var renderPlayerList = function() {
 
@@ -357,94 +317,68 @@ var renderPlayerList = function() {
 		var playerItem = $('<li></li>').text(name);
 		$('ul#playersList').append(playerItem);
 	})
-    // Hide the list if there's nothing to display
-    $('ul#playersList').toggle(GlobalGameState.Players.length > 0);
-    // Show the empty list message if there are no players
+	// Hide the list if there's nothing to display
+	$('ul#playersList').toggle(GlobalGameState.Players.length > 0);
+	// Show the empty list message if there are no players
 	$('#noPlayersMsg').toggle(GlobalGameState.Players.length == 0);
 
-    // Get list of winners, sorted by number of wins
-    var winners = Object.keys(GlobalGameState.WinsByUsername).sort(function(a,b) {
-        return GlobalGameState.WinsByUsername[b] - GlobalGameState.WinsByUsername[a]
-    });
-    // Hide the title if there's nothing to display
-    $('#winnersListTitle').toggle(winners.length > 0);
-    // Truncate existing winners list then replace with current list
-    $('ul#winnersList').html('')
-    winners.map(function(name) {
-        var winnerItem = $('<li></li>').text(name);
+	// Get list of winners, sorted by number of wins
+	var winners = Object.keys(GlobalGameState.WinsByUsername).sort(function(a,b) {
+		return GlobalGameState.WinsByUsername[b] - GlobalGameState.WinsByUsername[a]
+	});
+	// Hide the title if there's nothing to display
+	$('#winnersListTitle').toggle(winners.length > 0);
+	// Truncate existing winners list then replace with current list
+	$('ul#winnersList').html('')
+	winners.map(function(name) {
+		var winnerItem = $('<li></li>').text(name);
 		var winCount = $('<span></span>').text(GlobalGameState.WinsByUsername[name]);
 		winnerItem.append(winCount);
-        $('ul#winnersList').append(winnerItem);
-    })
+		$('ul#winnersList').append(winnerItem);
+	})
 
-	// Only allow starting game if player has joined and 2 or more players
+	// Only allow starting game if server is ready and player has joined
 	$('#startGameButton').toggleClass('disabled', 
-		(GlobalGameState.Players.length <= 1 || PrivateLocalState.PlayerName == null));
+		(GlobalGameState.CanStartNewGame == false || PrivateLocalState.PlayerName == null));
 
-	if (PrivateLocalState.WelcomeErrorMessage != null) {
-		$('#generalGameMessage').text(PrivateLocalState.WelcomeErrorMessage);
+	if (PrivateLocalState.ErrorMessage != null) {
+		$('.errorMessage').text(PrivateLocalState.ErrorMessage);
 	} else {
-		$('#generalGameMessage').text("");
+		$('.errorMessage').text("");
 	}
 	
 }
 
-var showWelcomeScreen = function() {
-	$('#players').removeClass('offscreen');
-	if (PrivateLocalState.PlayerName == null) {
-		renderControlButtons([ControlButtons.ENTER]);
-		PrivateLocalState.PlayerViewState = PlayerStateOptions.WATCHING;
-	} else {
-		renderControlButtons([ControlButtons.START, ControlButtons.EXIT]);
-		PrivateLocalState.PlayerViewState = PlayerStateOptions.HAS_JOINED;
-	}
-	renderJoinBox();
-	renderPlayerList();
-}
-
-var hideWelcomeScreen = function() {
-	$('#players').addClass('offscreen');	
-}
-
 var renderGrid = function() {
-
 	// Don't display current player or update grid if game starting, ending, or not in progress
-	if (PrivateLocalState.GameStartTileFlash 
-		|| PrivateLocalState.GameWinTileFlash
+	if (PrivateLocalState.GameWinTileFlash) {
+		renderGridPostGame();
+	} else if (PrivateLocalState.GameStartTileFlash 
 		|| !GlobalGameState.GameInProgress) { 
 		renderGridNotInGame();
 	} else {
 		renderGridInGame();
 	}
+}
 
-	$('body').toggleClass('onTitleScreen', 
-		!GlobalGameState.GameInProgress
-		|| PrivateLocalState.PlayerViewState == PlayerStateOptions.WANTS_TO_JOIN)
+var renderGridPostGame = function() {
+	for (var y = 0; y < 4; y++) {
+		for (var x = 0; x < 4; x++) {
+			var tile = $('#flashpad a').eq((y*4)+x);
+			tile.removeClass('red');
+			tile.removeClass('green');
+			tile.removeClass('red-flash');
+			tile.removeClass('green-flash');
+			if (GlobalGameState.WinningTile.y == y && GlobalGameState.WinningTile.x == x) {
+				tile.addClass('green-flash');
+			}
+		}
+	}
+	renderCountdown();
+	$('#turn').text("");
 }
 
 var renderGridNotInGame = function() {
-
-	console.log("NotInGame Render");
-
-	renderCountdown(false);
-
-	// Game-winning tile flash prevents normal rendering
-	if (PrivateLocalState.GameWinTileFlash) {
-		for (var y = 0; y < 4; y++) {
-			for (var x = 0; x < 4; x++) {
-				var tile = $('#flashpad a').eq((y*4)+x);
-				tile.removeClass('red');
-				tile.removeClass('green');
-				tile.removeClass('red-flash');
-				tile.removeClass('green-flash');
-				if (GlobalGameState.WinningTile.y == y && GlobalGameState.WinningTile.x == x) {
-					tile.addClass('green-flash');
-				}
-			}
-		}
-		return;
-	}
-
 	// Otherwise, display according to a pre-set pattern
 	var layout = PrivateLocalState.GameStartTileFlash ? 
 		GAME_START_BOARD_COLOR : WELCOME_SCREEN_BOARD_COLOR;
@@ -459,14 +393,11 @@ var renderGridNotInGame = function() {
 		}
 	}
 
+	renderCountdown();
 	$('#turn').text("");
-
 }
 
 var renderGridInGame = function() {
-
-	console.log("InGame Render");
-
 	for (var y = 0; y < 4; y++) {
 		for (var x = 0; x < 4; x++) {
 			var tile = $('#flashpad a').eq((y*4)+x);
@@ -484,11 +415,14 @@ var renderGridInGame = function() {
 		$('#turn').text("Waiting for " + currentPlayerName + "...").removeClass('highlight');
 	}
 
-	renderCountdown(true);
-
+	renderCountdown();
 }
 
-var renderCountdown = function(display) {
+var renderCountdown = function() {
+	var display = GlobalGameState.GameInProgress 
+		&& PrivateLocalState.IsPlayerActive
+		&& !PrivateLocalState.GameStartTileFlash;
+
 	$('#countdown').toggleClass('isCountingDown', display);
 	if (PrivateLocalState.CountdownInterval != null) {
 		clearTimeout(PrivateLocalState.CountdownInterval);
@@ -498,8 +432,8 @@ var renderCountdown = function(display) {
 		var updateCountdownNumber = function() {
 			PrivateLocalState.CountdownSeconds--;
 			if (PrivateLocalState.CountdownSeconds < 0) {
-				// Just in case
-				$('#countdown-number').text("");	
+				// Don't display negative number, just in case
+				$('#countdown-number').text(0);	
 			} else {
 				$('#countdown-number').text(PrivateLocalState.CountdownSeconds);
 			}
@@ -512,22 +446,20 @@ var renderCountdown = function(display) {
 }
 
 var displayTemporaryErrorMessage = function(msg) {
-
-	PrivateLocalState.WelcomeErrorMessage = msg;
+	PrivateLocalState.ErrorMessage = msg;
 	// If it's the same message, clear it
 	window.setTimeout(function() {
-		if (PrivateLocalState.WelcomeErrorMessage == msg) {
-			PrivateLocalState.WelcomeErrorMessage = null;
+		if (PrivateLocalState.ErrorMessage == msg) {
+			PrivateLocalState.ErrorMessage = null;
+			render();
 		}
-		renderPlayerList();
 	}, 5000);
-	renderPlayerList();
-
 }
 
-var updateGlobalGameState = function(data) {
-	console.log("Updating Game State", data);
-	GlobalGameState = data.state;
+var leaveGame = function(socket) {
+	PrivateLocalState.PlayerName = null;
+	PrivateLocalState.IsPlayerActive = false;
+	socket.emit(ClientMessages.EXIT, {});
 }
 
 var init = function() {
@@ -550,34 +482,28 @@ var init = function() {
 
 }
 
-var renderControlButtons = function(buttons) {
-	if (buttons !== undefined) {
-		PrivateLocalState.ControlButtonsToDisplay = buttons;
+var updateGlobalGameState = function(data) {
+	console.log("Updating Game State", data);
+	GlobalGameState = data.state;
+	render();
+}
+
+var render = function() {
+	$('body').removeClass();
+	$('body').addClass(PrivateLocalState.DisplayState);
+	if (PrivateLocalState.IsPlayerActive) {
+		$('body').addClass('activePlayer');
+	} else {
+		$('body').addClass('inactivePlayer');
+	}
+	if (GlobalGameState.GameInProgress) {
+		$('body').addClass('gameInProgress');
+	} else {
+		$('body').addClass('noGameInProgress');
 	}
 
-	// Annoyingly can't do this CSS-only because callback doesn't work properly
-	$('#gameControl').animate({
-		bottom: '-100px'
-	}, 200, null, function() {
-
-		$('#gameControl .actionbutton').removeClass('buttonIsActive buttonIsHalf');
-
-		for (var i in PrivateLocalState.ControlButtonsToDisplay) {
-			var buttonSelector = PrivateLocalState.ControlButtonsToDisplay[i];
-			$(buttonSelector).addClass('buttonIsActive');
-		}
-
-		if (PrivateLocalState.ControlButtonsToDisplay.length > 1) {
-			$('#gameControl .actionbutton').addClass('buttonIsHalf');
-		}
-
-		// Re-display the bar once buttons have been modified
-		$('#gameControl').animate({
-			bottom: '10px'
-		}, 200)
-
-	})
-
+	renderPlayerList();
+	renderGrid();
 }
 
 var playSound = function(soundObj) {

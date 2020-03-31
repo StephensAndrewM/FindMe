@@ -1,5 +1,5 @@
 <!doctype html>
-<html class="no-js" lang="">
+<html lang="en">
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
@@ -23,9 +23,7 @@
 	<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
 	<meta name="theme-color" content="#f22222">
 </head>
-<body class="playerIsWatching onTitleScreen">
-
-	<h1 class="gameTitle" id="gameTitlePersistent">Find Me</h1>
+<body class="stateTitleScreen">
 
 	<div id="countdown">
 		<div id="countdown-number">X</div>
@@ -41,54 +39,73 @@
 		</svg>
 	</div>
 
-	<form action="" method="post" id="joinGameForm">
+	<form action="" method="post" id="setNameForm">
 		<input type="text" id="playerInput" placeholder="Enter Your Name" />
-		<input type="submit" class="actionbutton" id="joinGameButton" value="Join Now" />
+		<input type="submit" class="actionbutton" id="setNameButton" value="Join Now" />
 	</form>
 
-	<div id="gameControl">
-		<div id="generalGameMessage"></div>
-		<a class="actionbutton" id="enterGameButton" href="#">I Want to Play!</a>
-		<a class="actionbutton" id="startGameButton" href="#">Start</a>
+	<div class="gameControl" id="gameControl-inactivePlayerTitleScreen">
+		<div class="errorMessage"></div>
+		<a class="actionbutton" id="joinGameButton" href="#">I Want to Play!</a>
+	</div>
+	<div class="gameControl" id="gameControl-activePlayerTitleScreen">
+		<div class="errorMessage"></div>
+		<a class="actionbutton halfbutton" id="startGameButton" href="#">Start</a>
+		<a class="actionbutton actionbutton-red halfbutton" id="unjoinGameButton" href="#">Exit</a>
+	</div>
+	<div class="gameControl" id="gameControl-activePlayerInGame">
 		<a class="actionbutton actionbutton-red" id="exitGameButton" href="#">Exit</a>
 	</div>
 
 	<div id="players">
-        <h2 id="playersListTitle">Players</h2>
+		<h1 class="gameTitle" id="gameTitlePersistent">Find Me</h1>
+		<h2 id="playersListTitle">Players</h2>
 		<ul id="playersList"></ul>
 		<p id="noPlayersMsg">No players connected</p>
-        
-        <h2 id="winnersListTitle">Winners</h2>
-        <ul id="winnersList"></ul>
+		
+		<h2 id="winnersListTitle">Winners</h2>
+		<ul id="winnersList"></ul>
+	</div>
+
+	<div id="winScreen" class="winScreen">
+		<div class="winScreenMessage"></div>
+	</div>
+
+	<div id="winScreenWithPrompt" class="winScreen">
+		<div class="winScreenMessage"></div>
+		<div id="winScreenPrompt">
+			<a class="actionbutton halfbutton" id="postWinOptInButton" href="#">Again!</a>
+			<a class="actionbutton actionbutton-red halfbutton" id="postWinOptOutButton" href="#">I'm Out</a>
+		</div>
 	</div>
 
 	<div id="flashpadWrapper">
-	<div id="flashpad">
+		<div id="flashpad">
 
-		<a class="tile" href="#"><img src="images/tile00.png" /></a>
-		<a class="tile" href="#"><img src="images/tile10.png" /></a>
-		<a class="tile" href="#"><img src="images/tile20.png" /></a>
-		<a class="tile" href="#"><img src="images/tile30.png" /></a>
+			<a class="tile" href="#"><img src="images/tile00.png" /></a>
+			<a class="tile" href="#"><img src="images/tile10.png" /></a>
+			<a class="tile" href="#"><img src="images/tile20.png" /></a>
+			<a class="tile" href="#"><img src="images/tile30.png" /></a>
 
-		<a class="tile" href="#"><img src="images/tile01.png" /></a>
-		<a class="tile" href="#"><img src="images/tile11.png" /></a>
-		<a class="tile" href="#"><img src="images/tile21.png" /></a>
-		<a class="tile" href="#"><img src="images/tile31.png" /></a>
+			<a class="tile" href="#"><img src="images/tile01.png" /></a>
+			<a class="tile" href="#"><img src="images/tile11.png" /></a>
+			<a class="tile" href="#"><img src="images/tile21.png" /></a>
+			<a class="tile" href="#"><img src="images/tile31.png" /></a>
 
-		<a class="tile" href="#"><img src="images/tile02.png" /></a>
-		<a class="tile" href="#"><img src="images/tile12.png" /></a>
-		<a class="tile" href="#"><img src="images/tile22.png" /></a>
-		<a class="tile" href="#"><img src="images/tile32.png" /></a>
+			<a class="tile" href="#"><img src="images/tile02.png" /></a>
+			<a class="tile" href="#"><img src="images/tile12.png" /></a>
+			<a class="tile" href="#"><img src="images/tile22.png" /></a>
+			<a class="tile" href="#"><img src="images/tile32.png" /></a>
 
-		<a class="tile" href="#"><img src="images/tile03.png" /></a>
-		<a class="tile" href="#"><img src="images/tile13.png" /></a>
-		<a class="tile" href="#"><img src="images/tile23.png" /></a>
-		<a class="tile" href="#"><img src="images/tile33.png" /></a>
+			<a class="tile" href="#"><img src="images/tile03.png" /></a>
+			<a class="tile" href="#"><img src="images/tile13.png" /></a>
+			<a class="tile" href="#"><img src="images/tile23.png" /></a>
+			<a class="tile" href="#"><img src="images/tile33.png" /></a>
 
+		</div>
+		<div id="turn"></div>
 	</div>
-	</div>
 
-	<div id="turn"></div>
 
 	<script src="/bower_components/jquery/dist/jquery.min.js"></script>
 	<script src="/bower_components/socket.io-client/dist/socket.io.min.js"></script>
