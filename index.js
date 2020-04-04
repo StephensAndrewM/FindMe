@@ -63,6 +63,7 @@ var GlobalGameState = {
 // These things stay on the server
 var PrivateServerState = {
 	WinningTile: { x: -1, y: -1 },
+    PressedTiles: 0,
 	PressTimeout: null,
 	GameSpacerTimeout: null,
 }
@@ -169,13 +170,10 @@ io.on(ClientMessages.CONNECTION, function (client) {
 			console.log("press: Invalid data format");
 			return;
 		}
-
 		if (!GlobalGameState.GameInProgress) { 
 			console.log("press: No game in progress");
 			return;
 		}
-
-		// Lots more validation
 		if (client.username != GlobalGameState.Players[GlobalGameState.CurrentId]) {
 			console.log("press: Received player data out of turn");
 			return;
@@ -189,35 +187,19 @@ io.on(ClientMessages.CONNECTION, function (client) {
 			return;
 		}
 
-		// If found the winning tile, broadcast message to end game
-		if (data.y == PrivateServerState.WinningTile.y && data.x == PrivateServerState.WinningTile.x) {
+        PrivateServerState.PressedTiles++;
+        console.log("PressedTiles is " + PrivateServerState.PressedTiles);
+        // Game ends automatically if the last tile hasn't been chosen
+        if (PrivateServerState.PressedTiles >= 15) {
 
-			// Highlight tile as winning one
-			GlobalGameState.Board[data.y][data.x] = TileState.WINNING;
+            // Get the player *after* the current one
+            incrementPlayer();
+            victoryHandler(client);
 
-			// Copy the winning tile to server state so clients can display
-			GlobalGameState.WinningTile = PrivateServerState.WinningTile;
+		// If current user pressed the winning title, end the game there
+        } else if (data.y == PrivateServerState.WinningTile.y && data.x == PrivateServerState.WinningTile.x) {
 
-			// Record a win for the user in the in-memory scoreboard
-			if (!(client.username in GlobalGameState.WinsByUsername)) {
-				GlobalGameState.WinsByUsername[client.username] = 0;
-			}
-			GlobalGameState.WinsByUsername[client.username]++;
-
-			// Don't allow another game to start for a few seconds
-			// to allow player UIs to catch up (and also for moderation).
-			GlobalGameState.CanStartNewGame = false;
-			PrivateServerState.GameSpacerTimeout = setTimeout(function() {
-				GlobalGameState.CanStartNewGame = true;
-				sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE)
-			}, GAME_SPACER_TIMEOUT * 1000)
-
-			// Inform all players, then reset the server state
-			sendToAllClients(ServerMessages.VICTORY);
-
-			// Clear the game state and push to clients
-			resetGameState();
-			sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE)
+            victoryHandler(client);
 
 		// Else, send the updated grid and player info
 		} else {
@@ -276,6 +258,8 @@ var initializeGame = function() {
 	// PrivateServerState.WinningTile.x = 0;
 	// PrivateServerState.WinningTile.y = 0;
 
+    PrivateServerState.PressedTiles = 0;
+
 }
 
 var resetGameState = function() {
@@ -312,6 +296,34 @@ var expectPress = function(seconds) {
 		});
 
 	}, seconds * 1000);
+}
+
+var victoryHandler = function(client) {
+    var winningUser = GlobalGameState.Players[GlobalGameState.CurrentId];
+
+    // Copy the winning tile to server state so clients can display
+    GlobalGameState.WinningTile = PrivateServerState.WinningTile;
+
+    // Record a win for the user in the in-memory scoreboard
+    if (!(winningUser in GlobalGameState.WinsByUsername)) {
+        GlobalGameState.WinsByUsername[winningUser] = 0;
+    }
+    GlobalGameState.WinsByUsername[winningUser]++;
+
+    // Don't allow another game to start for a few seconds
+    // to allow player UIs to catch up (and also for moderation).
+    GlobalGameState.CanStartNewGame = false;
+    PrivateServerState.GameSpacerTimeout = setTimeout(function() {
+        GlobalGameState.CanStartNewGame = true;
+        sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE)
+    }, GAME_SPACER_TIMEOUT * 1000)
+
+    // Inform all players, then reset the server state
+    sendToAllClients(ServerMessages.VICTORY);
+
+    // Clear the game state and push to clients
+    resetGameState();
+    sendToAllClients(ServerMessages.PLAYER_LIST_UPDATE)
 }
 
 var gameExitHandler = function(client) {

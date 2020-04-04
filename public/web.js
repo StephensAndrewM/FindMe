@@ -75,19 +75,23 @@ var GlobalGameState = {
 	WinsByUsername: {}
 }
 
-var PrivateLocalState = {
-	PlayerName: null,
-	IsPlayerActive: false,
-	DisplayState: DisplayState.TITLE_SCREEN,
-	GameStartTileFlash: false,
-	GameWinTileFlash: false,
-	ErrorMessage: null,
-	CountdownSeconds: -1,
-	CountdownInterval: null,
-	WinPromptTimeout: null,
+function getDefaultPrivateLocalState() {
+	return {
+		PlayerName: null,
+		IsPlayerActive: false,
+		DisplayState: DisplayState.TITLE_SCREEN,
+		GameStartTileFlash: false,
+		GameWinTileFlash: false,
+		ErrorMessage: null,
+		CountdownSeconds: -1,
+		CountdownInterval: null,
+		WinPromptTimeout: null,
+	};
 }
+var PrivateLocalState = getDefaultPrivateLocalState();
+// Have core elements been loaded?
+var PageLoaded = false;
 
-// In case of server disconnection we reset everything (mainly for debugging)
 var BasePrivateLocalState = null;
 
 $(function() {
@@ -99,7 +103,7 @@ $(function() {
 	// Server sends data about its state upon connection
 	socket.on(ServerMessages.CONNECT_RESULT, function(data) {
 		// In case we lost connection to server, reset local state to default
-		PrivateLocalState = JSON.parse(JSON.stringify(BasePrivateLocalState));
+		PrivateLocalState = getDefaultPrivateLocalState();
 
 		updateGlobalGameState(data);
 	})
@@ -238,7 +242,8 @@ $(function() {
 		PrivateLocalState.GameWinTileFlash = true;
 		playSound(EventSounds.WIN);
 
-		var winningPlayerName = GlobalGameState.Players[GlobalGameState.CurrentId];
+		// Read the winner from incoming data in case it's different (last tile case)
+		var winningPlayerName = data.state.Players[data.state.CurrentId];
 		var localPlayerWon = winningPlayerName == PrivateLocalState.PlayerName;
 
 		if (localPlayerWon) {
@@ -462,14 +467,26 @@ var leaveGame = function(socket) {
 
 var init = function() {
 
-	// Copy of default PrivateLocalState in case we lose connection to server
-	BasePrivateLocalState = JSON.parse(JSON.stringify(PrivateLocalState));
-
-	// Initialize the data attributes on grid tiles only once
+	// Load images and build the grid
+	loadedImages = 0;
 	for (var y = 0; y < 4; y++) {
 		for (var x = 0; x < 4; x++) {
-			var tile = $('#flashpad a').eq((y*4)+x);
+			var img = new Image();
+			var src = "images/tile" + x + y + ".png"
+			img.src = src;
+			img.onload = function() {
+				loadedImages++;
+				if (loadedImages < 16) { return; }
+				PageLoaded = true;
+				render();
+			}
+
+			var tile = $('<a href="#" class="tile"></a>');
 			tile.data({ 'x': x, 'y': y});
+			var tileImg = $('<img />');
+			tileImg.attr('src', src);
+			tile.append(tileImg);
+			$('#flashpad').append(tile);
 		}
 	}
 
@@ -488,6 +505,9 @@ var updateGlobalGameState = function(data) {
 
 var render = function() {
 	$('body').removeClass();
+	if (PageLoaded) { 
+		$('body').addClass('pageLoaded');
+	}
 	$('body').addClass(PrivateLocalState.DisplayState);
 	if (PrivateLocalState.IsPlayerActive) {
 		$('body').addClass('activePlayer');

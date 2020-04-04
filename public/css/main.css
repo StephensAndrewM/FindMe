@@ -1,9 +1,9 @@
 @font-face {
-    font-family: 'Opti Majer Irregular';
-    src: url('/css/optimajerirregular-webfont.woff2') format('woff2'),
-         url('/css/optimajerirregular-webfont.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
+	font-family: 'Opti Majer Irregular';
+	src: url('/css/optimajerirregular-webfont.woff2') format('woff2'),
+		 url('/css/optimajerirregular-webfont.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
 }
 
 body, html {
@@ -11,8 +11,8 @@ body, html {
 }
 
 html {
-    /* Prevents hidden offscreen buttons from appearing. */
-    overflow: hidden;
+	/* Prevents hidden offscreen buttons from appearing. */
+	overflow: hidden;
 }
 
 body {
@@ -26,16 +26,19 @@ body {
 /* Wrapper is needed because blur filters and overflow:hidden; don't play nice */
 #flashpadWrapper {
 	transition: all 0.5s ease;
-    opacity:0.2;
-    filter: blur(2px);
-    transform: scale(0.9);
+	opacity:0;
+	filter: blur(2px);
+	transform: scale(0.9);
 	overflow: auto;
-    padding-top: 20px;
-    /* When game active, overriden by:
+	padding-top: 20px;
+	/* When page loaded, overriden by:
+	opacity:0.2;
+	*/
+	/* When game active, overriden by:
 	opacity:1;
 	filter: blur(0px);
-    transform: scale(1);
-    */
+	transform: scale(1);
+	*/
 }
 
 #flashpad {
@@ -55,9 +58,9 @@ body {
 	margin:1%;
 	overflow: hidden;
 	background: #c0c0c0;
-    /* Don't display highlight on click */
-    user-select: none;
-    -webkit-tap-highlight-color: transparent
+	/* Don't display highlight on click */
+	user-select: none;
+	-webkit-tap-highlight-color: transparent
 }
 
 .tile img {
@@ -117,7 +120,7 @@ body {
 	border-radius:5px;
 	overflow: hidden;
 	display: inline-block;
-    transition: 0.5s all cubic-bezier(0.25, 0.46, 0.45, 0.94); /* easeOutQuad */
+	transition: 0.5s all cubic-bezier(0.25, 0.46, 0.45, 0.94); /* easeOutQuad */
 }
 
 .actionbutton-red {
@@ -139,10 +142,10 @@ body {
 #players {
 	position: absolute;
 	left: 0;
-    top:100%;
+	top:100%;
 	width: 100%;
 	height: calc(100% - 60px - 90px);
-    opacity:0;
+	opacity:0;
 	z-index: 40;
 	color: white;
 	font-family: "Open Sans", sans-serif;
@@ -150,10 +153,10 @@ body {
 	overflow-x: hidden;
 	overflow-y: scroll;
 
-    /* When active, overriden by:
-    top: 70px;
-    opacity: 1;
-    */
+	/* When active, overriden by:
+	top: 70px;
+	opacity: 1;
+	*/
 }
 
 /* Hide scrollbars cross-platform. */
@@ -196,7 +199,7 @@ body {
 	font-family: 'Opti Majer Irregular', sans-serif;
 	font-size:30px;
 	font-weight: normal;
-    margin:10px 0;
+	margin:10px 0;
 }
 
 h2#playersListTitle {
@@ -237,9 +240,9 @@ h2#winnersListTitle {
 	z-index:42;
 	transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */
 	text-align: center;
-    /* When active, overriden by:
-    bottom: 10px;
-    */
+	/* When active, overriden by:
+	bottom: 10px;
+	*/
 }
 
 #setNameForm {
@@ -249,9 +252,9 @@ h2#winnersListTitle {
 	z-index:41;
 	transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */
 	max-width: 600px;
-    /* When active, overrden by:
-    top:70px;
-    */
+	/* When active, overrden by:
+	top:70px;
+	*/
 }
 
 #setNameButton {
@@ -307,36 +310,36 @@ h2#winnersListTitle {
 }
 
 .winScreen {
-    position: absolute;
-    left: 0;
-    top: 30%;
-    width: 100%;
-    text-align: center;
-    z-index:43;
-    transform: scale(0.01);
-    opacity: 0;
-    transition: all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* easeOutBack */
+	position: absolute;
+	left: 0;
+	top: 30%;
+	width: 100%;
+	text-align: center;
+	z-index:43;
+	transform: scale(0.01);
+	opacity: 0;
+	transition: all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* easeOutBack */
 
-    /* When active, overriden by:
-    transform: scale(1);
-    opacity:1;
-    */
+	/* When active, overriden by:
+	transform: scale(1);
+	opacity:1;
+	*/
 }
 
 .winScreenMessage {
-    font-family: 'Opti Majer Irregular', sans-serif;
-    text-transform: uppercase;
-    font-size: 50px;
-    color: #00E200;
-    text-align: center;
+	font-family: 'Opti Majer Irregular', sans-serif;
+	text-transform: uppercase;
+	font-size: 50px;
+	color: #00E200;
+	text-align: center;
 }
 
 #winScreenWithPrompt {
-    top: 20%;
+	top: 20%;
 }
 
 #winScreenWithPrompt .winScreenMessage {
-    color: #FF3D3D;
+	color: #FF3D3D;
 }
 
 #turn {
@@ -361,7 +364,7 @@ h2#winnersListTitle {
 	width: 40px;
 	text-align: center;
 	display: none;
-    z-index:46;
+	z-index:46;
 }
 
 #countdown.isCountingDown {
@@ -393,8 +396,8 @@ h2#winnersListTitle {
 	line-height: 40px;
 	font-family: 'Opti Majer Irregular', sans-serif;
 	font-size: 24px;
-    z-index: 47;
-    position: relative;
+	z-index: 47;
+	position: relative;
 }
 
 svg {
@@ -431,34 +434,38 @@ svg circle {
 
 /* Overrides for styles when elements are active. */
 
+body.pageLoaded #flashpadWrapper {
+	opacity: 0.2;
+}
+
 body.stateTitleScreen.inactivePlayer.noGameInProgress #gameControl-inactivePlayerTitleScreen, 
 body.stateTitleScreen.activePlayer #gameControl-activePlayerTitleScreen,
 body.stateInGame.activePlayer #gameControl-activePlayerInGame {
-    bottom: 10px;
+	bottom: 10px;
 }
 
 body.stateTitleScreen #players {
-    top: 30px;
-    opacity: 1;
+	top: 30px;
+	opacity: 1;
 }
 
 body.stateNamePrompt #setNameForm {
-    top:70px;
+	top:70px;
 }
 
 body.stateInGame #flashpadWrapper {
-    opacity:1;
-    filter:blur(0px);
-    animation: none;
-    transform: scale(1);
+	opacity:1;
+	filter:blur(0px);
+	animation: none;
+	transform: scale(1);
 }
 
 body.stateWin #winScreen {
-    transform: scale(1);
-    opacity: 1
+	transform: scale(1);
+	opacity: 1
 }
 
 body.stateWinWithPrompt #winScreenWithPrompt {
-    transform: scale(1);
-    opacity: 1
+	transform: scale(1);
+	opacity: 1
 }
