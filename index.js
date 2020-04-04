@@ -28,7 +28,7 @@ var TileState = {
 };
 
 var PRESS_TIMEOUT = 10;
-var GAME_SPACER_TIMEOUT = 10;
+var GAME_SPACER_TIMEOUT = 5;
 
 var ClientMessages = {
 	JOIN: "join",

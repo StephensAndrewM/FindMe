@@ -6,6 +6,7 @@ var TileState = {
 };
 
 var STANDARD_TIMEOUT = 10;
+var WIN_DISPLAY_TIMEOUT = 5;
 var PLAYER_STORAGE_KEY = 'playerName'
 
 var ClientMessages = {
@@ -161,7 +162,7 @@ $(function() {
 	$('#unjoinGameButton').click(function() {
 		console.log("Attempting to disconnect on title screen");
 		leaveGame(socket);
-        // Need to re-render manually here since server does not trigger an event
+		// Need to re-render manually here since server does not trigger an event
 		render();
 		return false;
 	});
@@ -238,30 +239,27 @@ $(function() {
 		playSound(EventSounds.WIN);
 
 		var winningPlayerName = GlobalGameState.Players[GlobalGameState.CurrentId];
-		if (winningPlayerName == PrivateLocalState.PlayerName) {
+		var localPlayerWon = winningPlayerName == PrivateLocalState.PlayerName;
+
+		if (localPlayerWon) {
 			PrivateLocalState.DisplayState = DisplayState.WIN_WITH_PROMPT;
 			var name=$('<span></span>').text(winningPlayerName);
 			$('.winScreenMessage').html("YOU WIN,<br />").append(name).append("!");
-
-			PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
-				PrivateLocalState.GameWinTileFlash = false;
-				PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
-				leaveGame(socket);
-				render();
-			}, 10000);
-
 		} else {
 			PrivateLocalState.DisplayState = DisplayState.WIN;
 			var name=$('<span></span>').text(winningPlayerName);
 			$('.winScreenMessage').html(name).append("<br />Wins!");
-			
-			PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
-				PrivateLocalState.GameWinTileFlash = false;
-				PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
-				render();
-			}, 5000);
-		
 		}
+		
+		// Switch away from win prompt after a timeout
+		PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
+			PrivateLocalState.GameWinTileFlash = false;
+			PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
+			if (localPlayerWon) {
+				leaveGame(socket);
+			}
+			render();
+		}, WIN_DISPLAY_TIMEOUT * 1000);
 
 		updateGlobalGameState(data);
 	})

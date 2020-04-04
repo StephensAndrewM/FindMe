@@ -10,6 +10,11 @@ body, html {
 	height: 100%;
 }
 
+html {
+    /* Prevents hidden offscreen buttons from appearing. */
+    overflow: hidden;
+}
+
 body {
 	background: black;
 	max-width: 500px;
@@ -50,6 +55,9 @@ body {
 	margin:1%;
 	overflow: hidden;
 	background: #c0c0c0;
+    /* Don't display highlight on click */
+    user-select: none;
+    -webkit-tap-highlight-color: transparent
 }
 
 .tile img {
