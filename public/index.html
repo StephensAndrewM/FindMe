@@ -25,37 +25,26 @@
 </head>
 <body class="stateTitleScreen">
 
-	<div id="countdown">
-		<div id="countdown-number">X</div>
-		<svg>
-			<circle r="18" cx="20" cy="20">
-				<animate attributeType="CSS"
-					attributeName="stroke-dashoffset"
-					from="0px" to="113px" dur="10s"
-					repeatCount="0"
-					fill="freeze"
-					id="countdown-animation" />
-			</circle>
-		</svg>
-	</div>
-
 	<form action="" method="post" id="setNameForm">
 		<input type="text" id="playerInput" placeholder="Enter Your Name" />
-		<input type="submit" class="actionbutton" id="setNameButton" value="Join Now" />
+		<input type="submit" class="actionbutton-green" id="setNameButton" value="Join Now" />
 	</form>
 
 	<div class="gameControl" id="gameControl-inactivePlayerTitleScreen">
 		<div class="errorMessage"></div>
-		<a class="actionbutton" id="joinGameButton" href="#">I Want to Play!</a>
+		<a class="actionbutton-green" id="joinGameButton" href="#">I Want to Play!</a>
 	</div>
 	<div class="gameControl" id="gameControl-activePlayerTitleScreen">
 		<div class="errorMessage"></div>
-		<a class="actionbutton halfbutton" id="startGameButton" href="#">Start</a>
-		<a class="actionbutton actionbutton-red halfbutton" id="unjoinGameButton" href="#">Exit</a>
+		<a class="actionbutton-green halfbutton" id="startGameButton" href="#">Start</a><!--
+        --><a class="actionbutton-red halfbutton" id="unjoinGameButton" href="#">Exit</a>
 	</div>
 	<div class="gameControl" id="gameControl-activePlayerInGame">
-		<a class="actionbutton actionbutton-red" id="exitGameButton" href="#">Exit</a>
+		<a class="actionbutton-red" id="exitGameButton" href="#">Exit</a>
 	</div>
+    <div class="gameControl" id="gameControl-inactivePlayerInGame">
+        Game In Progress...
+    </div>
 
 	<div id="players">
 		<h1 class="gameTitle" id="gameTitlePersistent">Find Me</h1>
@@ -74,14 +63,29 @@
 	<div id="winScreenWithPrompt" class="winScreen">
 		<div class="winScreenMessage"></div>
 		<div id="winScreenPrompt">
-			<a class="actionbutton halfbutton" id="postWinOptInButton" href="#">Again!</a>
-			<a class="actionbutton actionbutton-red halfbutton" id="postWinOptOutButton" href="#">I'm Out</a>
+			<a class="actionbutton-green halfbutton" id="postWinOptInButton" href="#">Again!</a><!--
+            --><a class="actionbutton-red halfbutton" id="postWinOptOutButton" href="#">I'm Out</a>
 		</div>
 	</div>
 
 	<div id="flashpadWrapper">
 		<div id="flashpad"></div>
-		<div id="turn"></div>
+		<div id="turn">
+            <div id="currentPlayerLabel">PLAYER</div>
+            <div id="countdown">
+                <div id="countdown-number">X</div>
+                <svg>
+                    <circle r="28" cx="30" cy="30">
+                        <animate attributeType="CSS"
+                            attributeName="stroke-dashoffset"
+                            from="0px" to="180px" dur="10s"
+                            repeatCount="0"
+                            fill="freeze"
+                            id="countdown-animation" />
+                    </circle>
+                </svg>
+            </div>
+        </div>
 	</div>
 
 

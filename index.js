@@ -29,6 +29,7 @@ var TileState = {
 
 var PRESS_TIMEOUT = 10;
 var GAME_SPACER_TIMEOUT = 5;
+var GAME_START_FLASH_TIMEOUT = 2;
 
 var ClientMessages = {
 	JOIN: "join",
@@ -149,8 +150,8 @@ io.on(ClientMessages.CONNECTION, function (client) {
 
 		// Notify all players, including player that pressed the start button
 		sendToAllClients(ServerMessages.GAME_START);
-		// Add a bonus 3 seconds since the players can't interact with the game then
-		expectPress(PRESS_TIMEOUT + 3);
+		// Add bonus seconds since the players can't interact with the game then
+		expectPress(PRESS_TIMEOUT + GAME_START_FLASH_TIMEOUT);
 
 	})
 

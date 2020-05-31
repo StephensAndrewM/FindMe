@@ -37,14 +37,15 @@ var EventSounds = {
 
 var DisplayState = {
 	TITLE_SCREEN: 'stateTitleScreen',
-	IN_GAME: 'stateInGame',
 	NAME_PROMPT: 'stateNamePrompt',
-	WIN: 'stateWin',
-	WIN_WITH_PROMPT: 'stateWinWithPrompt',
+	GAME_START: 'stateGameStart',
+	IN_GAME: 'stateInGame',
+	GAME_OVER: 'stateGameOver',
+	GAME_OVER_WIN: 'stateGameOverWin',
 }
 
 // This uses a distinct namespace from TileState since there's no 
-//     functionality attached to these display modes.
+// functionality attached to these display modes.
 var WELCOME_SCREEN_BOARD_COLOR = [
 	[1,0,0,1],
 	[1,0,0,1],
@@ -64,17 +65,6 @@ var TileColor = {
 	GREEN_FLASH: 4,
 }
 
-
-// State shared between client and server
-var GlobalGameState = {
-	GameInProgress: false,
-	Players: [],
-	Board: null,
-	CurrentId: -1,
-	WinningTile: null,
-	WinsByUsername: {}
-}
-
 function getDefaultPrivateLocalState() {
 	return {
 		PlayerName: null,
@@ -88,11 +78,10 @@ function getDefaultPrivateLocalState() {
 		WinPromptTimeout: null,
 	};
 }
-var PrivateLocalState = getDefaultPrivateLocalState();
-// Have core elements been loaded?
-var PageLoaded = false;
 
-var BasePrivateLocalState = null;
+var PageLoaded = false;
+var GlobalGameState = null;
+var PrivateLocalState = getDefaultPrivateLocalState();
 
 $(function() {
 
@@ -100,7 +89,7 @@ $(function() {
 
 	init();
 
-	// Server sends data about its state upon connection
+	// Server sends data about its state upon initial connection
 	socket.on(ServerMessages.CONNECT_RESULT, function(data) {
 		// In case we lost connection to server, reset local state to default
 		PrivateLocalState = getDefaultPrivateLocalState();
@@ -112,7 +101,7 @@ $(function() {
 	$('#joinGameButton').click(function() {
 		PrivateLocalState.DisplayState = DisplayState.NAME_PROMPT;
 		render();
-		$('#playerInput').focus();		
+		$('#playerInput').focus();
 		return false;
 	})
 
@@ -185,19 +174,19 @@ $(function() {
 	// Server notifies that game is definitely starting
 	socket.on(ServerMessages.GAME_START, function(data) {
 		PrivateLocalState.GameStartTileFlash = true;
+		if (PrivateLocalState.IsPlayerActive) {
+			PrivateLocalState.DisplayState = DisplayState.GAME_START;
+		}
+		
 		window.setTimeout(function() {
 			PrivateLocalState.GameStartTileFlash = false;
+			if (PrivateLocalState.IsPlayerActive) {
+				PrivateLocalState.DisplayState = DisplayState.IN_GAME;
+			}
 			render();
 		}, 2000);
+
 		playSound(EventSounds.START);
-
-		if (PrivateLocalState.PlayerName != null) {
-			PrivateLocalState.DisplayState = DisplayState.IN_GAME;
-		}
-
-		// Clear state from win screen, just in case
-		clearTimeout(PrivateLocalState.WinPromptTimeout)
-		PrivateLocalState.GameWinTileFlash = false;
 
 		updateGlobalGameState(data);
 	});
@@ -224,11 +213,10 @@ $(function() {
 		var pressX = $(this).data('x');
 		var pressY = $(this).data('y');
 
-		if (GlobalGameState.Board[pressY, pressX] != TileState.UNPRESSED) {
-			console.log("This tile is already pressed.", pressX, pressY);
+		if (GlobalGameState.Board[pressY][pressX] != TileState.UNPRESSED) {
+			console.log("This tile is already pressed.", pressX, pressY, GlobalGameState.Board[pressY][pressX]);
+			return false;
 		}
-
-		console.log('Tile Press', pressX, pressY);
 
 		socket.emit(ClientMessages.PRESS, {
 			x: pressX,
@@ -246,47 +234,48 @@ $(function() {
 		var winningPlayerName = data.state.Players[data.state.CurrentId];
 		var localPlayerWon = winningPlayerName == PrivateLocalState.PlayerName;
 
-		if (localPlayerWon) {
-			PrivateLocalState.DisplayState = DisplayState.WIN_WITH_PROMPT;
-			var name=$('<span></span>').text(winningPlayerName);
-			$('.winScreenMessage').html("YOU WIN,<br />").append(name).append("!");
-		} else {
-			PrivateLocalState.DisplayState = DisplayState.WIN;
-			var name=$('<span></span>').text(winningPlayerName);
-			$('.winScreenMessage').html(name).append("<br />Wins!");
-		}
+		// Only show win screen if the user is part of the game
+		if (PrivateLocalState.IsPlayerActive) {
 		
-		// Switch away from win prompt after a timeout
-		PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
-			PrivateLocalState.GameWinTileFlash = false;
-			PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
 			if (localPlayerWon) {
-				leaveGame(socket);
+				PrivateLocalState.DisplayState = DisplayState.GAME_OVER_WIN;
+				var name=$('<span></span>').text(winningPlayerName);
+				$('.winScreenMessage').html("YOU WIN,<br />").append(name).append("!");
+			} else {
+				PrivateLocalState.DisplayState = DisplayState.GAME_OVER;
+				var name=$('<span></span>').text(winningPlayerName);
+				$('.winScreenMessage').html(name).append("<br />Wins!");
 			}
-			render();
-		}, WIN_DISPLAY_TIMEOUT * 1000);
+			
+			// Switch away from win prompt after a timeout
+			PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
+				if (localPlayerWon) {
+					leaveGame(socket);
+				}
+				closeWinScreen();
+			}, WIN_DISPLAY_TIMEOUT * 1000);
+
+		} else {
+			// If player is just watching, only clear the tile flash
+			window.setTimeout(function() {
+				PrivateLocalState.GameWinTileFlash = false;
+				render();
+			}, WIN_DISPLAY_TIMEOUT * 1000);
+		}
 
 		updateGlobalGameState(data);
 	})
 
 	$('#postWinOptInButton').click(function() {
 		clearTimeout(PrivateLocalState.WinPromptTimeout);
-
-		PrivateLocalState.GameWinTileFlash = false;
-		PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
-		render();
-
+		closeWinScreen();
 		return false;
 	})
 
 	$('#postWinOptOutButton').click(function() {
 		clearTimeout(PrivateLocalState.WinPromptTimeout);
-		
-		PrivateLocalState.GameWinTileFlash = false;
-		PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
+		closeWinScreen();
 		leaveGame(socket);
-		render();
-
 		return false;
 	})
 
@@ -378,7 +367,7 @@ var renderGridPostGame = function() {
 		}
 	}
 	renderCountdown();
-	$('#turn').text("");
+	$('#currentPlayer').text("");
 }
 
 var renderGridNotInGame = function() {
@@ -397,7 +386,6 @@ var renderGridNotInGame = function() {
 	}
 
 	renderCountdown();
-	$('#turn').text("");
 }
 
 var renderGridInGame = function() {
@@ -411,18 +399,19 @@ var renderGridInGame = function() {
 		}
 	}
 
+	// Delete then re-create the current player label so it animates in
+	$('#currentPlayer').remove();
 	var currentPlayerName = GlobalGameState.Players[GlobalGameState.CurrentId];
-	if (currentPlayerName == PrivateLocalState.PlayerName) {
-		$('#turn').text("Your turn, " + currentPlayerName + "!").addClass('highlight');
-	} else {
-		$('#turn').text("Waiting for " + currentPlayerName + "...").removeClass('highlight');
-	}
+	var newCurrentPlayerDiv = $('<div id="currentPlayer"></div>');
+	newCurrentPlayerDiv.text(currentPlayerName)
+		.toggleClass('highlight', currentPlayerName == PrivateLocalState.PlayerName);
+	$('#turn').append(newCurrentPlayerDiv);
 
 	renderCountdown();
 }
 
 var renderCountdown = function() {
-	var display = GlobalGameState.GameInProgress 
+	var display = GlobalGameState.GameInProgress
 		&& PrivateLocalState.IsPlayerActive
 		&& !PrivateLocalState.GameStartTileFlash;
 
@@ -446,6 +435,12 @@ var renderCountdown = function() {
 		document.getElementById('countdown-animation').beginElement();
 		updateCountdownNumber();
 	}
+}
+
+var closeWinScreen = function() {
+	PrivateLocalState.GameWinTileFlash = false;
+	PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
+	render();
 }
 
 var displayTemporaryErrorMessage = function(msg) {

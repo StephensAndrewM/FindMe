@@ -25,7 +25,7 @@ body {
 
 /* Wrapper is needed because blur filters and overflow:hidden; don't play nice */
 #flashpadWrapper {
-	transition: all 0.5s ease;
+	transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 	opacity:0;
 	filter: blur(2px);
 	transform: scale(0.9);
@@ -58,6 +58,7 @@ body {
 	margin:1%;
 	overflow: hidden;
 	background: #c0c0c0;
+    border-radius:100%; /* Prevents stray border when transforming. */
 	/* Don't display highlight on click */
 	user-select: none;
 	-webkit-tap-highlight-color: transparent
@@ -75,10 +76,22 @@ body {
 
 .tile.green {
 	background: #10ff00;
+    animation: press-tile-bounce 0.8s;
+}
+
+@keyframes press-tile-bounce {
+    0%   { transform: scale(1); }
+    15%  { transform: scale(1.3); }
+    30%  { transform: scale(0.8); }
+    45%  { transform: scale(1.1); }
+    60%  { transform: scale(0.95); }
+    75%  { transform: scale(1.03); }
+    90%  { transform: scale(0.98); }
+    100% { transform: scale(1); }
 }
 
 .tile.green-flash {
-	animation: green-gray-blink 0.3s infinite;
+	animation: green-gray-blink 0.3s infinite, press-tile-bounce 0.8s;
 }
 
 .tile.red-flash {
@@ -103,14 +116,12 @@ body {
 	}
 }
 
-.actionbutton {
+.actionbutton-red, .actionbutton-green {
 	margin: 0 5px;
 	width: calc(100% - 10px);
 	padding: 11px 0 8px;
 	font-family: 'Opti Majer Irregular', sans-serif;
 	font-size: 29px;
-	background: #0cbb00;
-	box-shadow: 0px 5px 0px #00651a;
 	border: 0;
 	text-transform: uppercase;
 	color: #EAEAEA;
@@ -119,8 +130,23 @@ body {
 	max-width: 380px;
 	border-radius:5px;
 	overflow: hidden;
+    position: relative;
 	display: inline-block;
-	transition: 0.5s all cubic-bezier(0.25, 0.46, 0.45, 0.94); /* easeOutQuad */
+}
+
+@keyframes button-bounce {
+    0%   { top: 0px; }
+    90%   { top: 0px; }
+    92%  { top: -12px; }
+    94%  { top: 6px; }
+    96%  { top: -3px; }
+    100% { top: 0px; }
+}
+
+.actionbutton-green {
+	background: #0cbb00;
+	box-shadow: 0px 5px 0px #00651a;
+    animation: button-bounce 6s infinite;
 }
 
 .actionbutton-red {
@@ -128,13 +154,13 @@ body {
 	box-shadow: 0px 5px 0px #750000;
 }
 
-.actionbutton.disabled {
+.actionbutton-red.disabled, .actionbutton-green.disabled {
 	background: #757575;
 	box-shadow: 0px 5px 0px #484848;
 	color: #929292;
 }
 
-.actionbutton.halfbutton {
+.halfbutton {
 	width: calc(50% - 13px);
 	max-width:200px;
 }
@@ -149,10 +175,9 @@ body {
 	z-index: 40;
 	color: white;
 	font-family: "Open Sans", sans-serif;
-	transition: 0.5s all cubic-bezier(0.25, 0.46, 0.45, 0.94); /* easeOutQuad */
+	transition: all 0.8s cubic-bezier(0.34, 1.34, 0.64, 1);
 	overflow-x: hidden;
 	overflow-y: scroll;
-
 	/* When active, overriden by:
 	top: 70px;
 	opacity: 1;
@@ -208,8 +233,8 @@ h2#playersListTitle {
 
 h2#winnersListTitle {
 	color: #00E200;
+    display: none;
 }
-
 
 #noPlayersMsg {
 	color: #808080;
@@ -228,8 +253,6 @@ h2#winnersListTitle {
 	font-size: 55px;
 	margin-bottom: 8px;
 	font-weight: normal;
-	transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); /* easeOutQuint */
-	overflow: hidden; /* Needed when this is hidden for small screens. */
 }
 
 .gameControl {
@@ -238,8 +261,12 @@ h2#winnersListTitle {
 	width: calc(100% - 10px);
 	left: 5px;
 	z-index:42;
-	transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */
 	text-align: center;
+    font-family: 'Opti Majer Irregular', sans-serif;
+    font-size: 29px;
+    color:white;
+    text-transform: uppercase;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 	/* When active, overriden by:
 	bottom: 10px;
 	*/
@@ -250,7 +277,7 @@ h2#winnersListTitle {
 	top:-110px;
 	width:100%;
 	z-index:41;
-	transition: all 0.5s cubic-bezier(0.86, 0, 0.07, 1); /* easeInOutQuint */
+	transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 	max-width: 600px;
 	/* When active, overrden by:
 	top:70px;
@@ -288,7 +315,6 @@ h2#winnersListTitle {
 	max-width:350px;
 	display: block;
 	border-radius: 5px 5px 0 0;
-	transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); /* easeOutQuint */
 	text-transform: uppercase;
 }
 
@@ -344,24 +370,54 @@ h2#winnersListTitle {
 
 #turn {
 	color: white;
-	font-family: 'Opti Majer Irregular', sans-serif;
-	text-transform: uppercase;
-	font-size: 24px;
-	text-align: center;
-	width: 100%;
-	margin-top:20px;
+	width: 95%;
+	margin:20px auto 0;
+    position: relative;
+    overflow: hidden;
 }
 
-#turn.highlight {
+@keyframes player-slidein {
+    0% { left:-100px; opacity:0; }
+    20% { opacity:1; }
+    50% { left:20px; }
+    100% { left:0px; }
+}
+
+#currentPlayer {
+    font-family: 'Opti Majer Irregular', sans-serif;
+    font-size:36px;
+    text-transform: uppercase;
+    position: relative;
+    animation: player-slidein 0.8s ease;
+    left:0;
+    display: none;
+    /* When active, overriden by:
+    display: block;
+    */
+}
+
+#currentPlayer.highlight {
 	color: #00E200;
+}
+
+#currentPlayerLabel {
+    font-family: 'Opti Majer Irregular', sans-serif;
+    font-size:22px;
+    text-transform: uppercase;
+    opacity: 0;
+    color:#c0c0c0;
+    transition: all 0.5s linear;
+    /* When active, overriden by:
+    opacity:1;
+    */
 }
 
 #countdown {
 	position: absolute;
-	top:10px;
-	right:10px;
-	height: 40px;
-	width: 40px;
+	top:5px;
+	right:0px;
+	height: 60px;
+	width: 60px;
 	text-align: center;
 	display: none;
 	z-index:46;
@@ -393,24 +449,24 @@ h2#winnersListTitle {
 #countdown-number {
 	color: white;
 	display: inline-block;
-	line-height: 40px;
+	line-height: 60px;
 	font-family: 'Opti Majer Irregular', sans-serif;
-	font-size: 24px;
+	font-size: 36px;
 	z-index: 47;
 	position: relative;
 }
 
-svg {
+#countdown svg {
 	position: absolute;
 	top: 0;
 	right: 0;
-	width: 40px;
-	height: 40px;
+	width: 60px;
+	height: 60px;
 	transform: rotateY(-180deg) rotateZ(-90deg);
 }
 
-svg circle {
-	stroke-dasharray: 113px;
+#countdown svg circle {
+	stroke-dasharray: 180px;
 	stroke-dashoffset: 0px;
 	stroke-linecap: round;
 	stroke-width: 4px;
@@ -425,13 +481,6 @@ svg circle {
 	}
 }
 
-/* Short screens need to hide the title while in-game. */
-@media screen and (max-height: 500px) {
-	#countdown.isCountingDown {
-		display: none;
-	}
-}
-
 /* Overrides for styles when elements are active. */
 
 body.pageLoaded #flashpadWrapper {
@@ -440,7 +489,8 @@ body.pageLoaded #flashpadWrapper {
 
 body.stateTitleScreen.inactivePlayer.noGameInProgress #gameControl-inactivePlayerTitleScreen, 
 body.stateTitleScreen.activePlayer #gameControl-activePlayerTitleScreen,
-body.stateInGame.activePlayer #gameControl-activePlayerInGame {
+body.stateInGame.activePlayer #gameControl-activePlayerInGame,
+body.gameInProgress.inactivePlayer #gameControl-inactivePlayerInGame {
 	bottom: 10px;
 }
 
@@ -453,6 +503,7 @@ body.stateNamePrompt #setNameForm {
 	top:70px;
 }
 
+body.stateGameStart #flashpadWrapper,
 body.stateInGame #flashpadWrapper {
 	opacity:1;
 	filter:blur(0px);
@@ -460,12 +511,20 @@ body.stateInGame #flashpadWrapper {
 	transform: scale(1);
 }
 
-body.stateWin #winScreen {
-	transform: scale(1);
-	opacity: 1
+.stateInGame #currentPlayerLabel {
+    opacity: 1;
 }
 
-body.stateWinWithPrompt #winScreenWithPrompt {
+.stateInGame #currentPlayer {
+    display: block;
+}
+
+body.stateGameOver #winScreen {
 	transform: scale(1);
-	opacity: 1
+	opacity: 1;
+}
+
+body.stateGameOverWin #winScreenWithPrompt {
+	transform: scale(1);
+	opacity: 1;
 }
