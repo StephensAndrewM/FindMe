@@ -37,14 +37,14 @@
 	<div class="gameControl" id="gameControl-activePlayerTitleScreen">
 		<div class="errorMessage"></div>
 		<a class="actionbutton-green halfbutton" id="startGameButton" href="#">Start</a><!--
-        --><a class="actionbutton-red halfbutton" id="unjoinGameButton" href="#">Exit</a>
+		--><a class="actionbutton-red halfbutton" id="unjoinGameButton" href="#">Exit</a>
 	</div>
 	<div class="gameControl" id="gameControl-activePlayerInGame">
 		<a class="actionbutton-red" id="exitGameButton" href="#">Exit</a>
 	</div>
-    <div class="gameControl" id="gameControl-inactivePlayerInGame">
-        Game In Progress...
-    </div>
+	<div class="gameControl" id="gameControl-inactivePlayerInGame">
+		Game In Progress...
+	</div>
 
 	<div id="players">
 		<h1 class="gameTitle" id="gameTitlePersistent">Find Me</h1>
@@ -57,35 +57,33 @@
 	</div>
 
 	<div id="winScreen" class="winScreen">
-		<div class="winScreenMessage"></div>
+		<div class="winScreenMessage"><span class="winScreenPlayer"></span><br />Wins!</div>
 	</div>
 
 	<div id="winScreenWithPrompt" class="winScreen">
-		<div class="winScreenMessage"></div>
-		<div id="winScreenPrompt">
-			<a class="actionbutton-green halfbutton" id="postWinOptInButton" href="#">Again!</a><!--
-            --><a class="actionbutton-red halfbutton" id="postWinOptOutButton" href="#">I'm Out</a>
-		</div>
+		<div class="winScreenMessage">You win,<br /><span class="winScreenPlayer"></span>!</div>
+		<a class="actionbutton-green halfbutton" id="postWinOptInButton" href="#">Again!</a><!--
+		--><a class="actionbutton-red halfbutton" id="postWinOptOutButton" href="#">I'm Out</a>
 	</div>
 
 	<div id="flashpadWrapper">
 		<div id="flashpad"></div>
 		<div id="turn">
-            <div id="currentPlayerLabel">PLAYER</div>
-            <div id="countdown">
-                <div id="countdown-number">X</div>
-                <svg>
-                    <circle r="28" cx="30" cy="30">
-                        <animate attributeType="CSS"
-                            attributeName="stroke-dashoffset"
-                            from="0px" to="180px" dur="10s"
-                            repeatCount="0"
-                            fill="freeze"
-                            id="countdown-animation" />
-                    </circle>
-                </svg>
-            </div>
-        </div>
+			<div id="currentPlayerLabel">PLAYER</div>
+			<div id="countdown">
+				<div id="countdown-number">X</div>
+				<svg>
+					<circle r="28" cx="30" cy="30">
+						<animate attributeType="CSS"
+							attributeName="stroke-dashoffset"
+							from="0px" to="180px" dur="10s"
+							repeatCount="0"
+							fill="freeze"
+							id="countdown-animation" />
+					</circle>
+				</svg>
+			</div>
+		</div>
 	</div>
 
 

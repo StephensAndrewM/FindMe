@@ -196,16 +196,32 @@ body {
 
 #players ul {
 	padding-left:0;
-	margin:10px 0;
+	margin:0;
 }
 
 #players p, #players li, #players h2 {
-	margin: 4px 0;
+	margin:0;
+    padding: 2px 0;
 	font-size: 20px;
 	text-align: center;
 	font-weight: bold;
 	list-style-type: none;
 	text-transform: uppercase;
+}
+
+@keyframes players-item-appear {
+    0% { font-size: 0px; }
+    100% { font-size:20px; }
+}
+
+#playersList li {
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* easeOutBack */
+    animation: players-item-appear 0.5s cubic-bezier(0.34, 2.0, 0.64, 1); /* easeOutBack */
+}
+
+#playersList li.inactive {
+    font-size:0px;
+    padding:0;
 }
 
 #players li span {
@@ -239,6 +255,11 @@ h2#winnersListTitle {
 #noPlayersMsg {
 	color: #808080;
 	font-weight: normal;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* easeOutBack */
+}
+
+#noPlayersMsg.inactive {
+    font-size:0;
 }
 
 .gameTitle {
@@ -361,11 +382,23 @@ h2#winnersListTitle {
 }
 
 #winScreenWithPrompt {
-	top: 20%;
+	top: 15%;
 }
 
 #winScreenWithPrompt .winScreenMessage {
 	color: #FF3D3D;
+}
+
+#winScreenWithPrompt .halfbutton {
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.0s;
+    margin-top:50px;
+    transform: scale(0.01);
+    opacity: 0;
+    
+    /* When active, overriden by:
+    transform: scale(1);
+    opacity:1;
+    */
 }
 
 #turn {
@@ -527,4 +560,9 @@ body.stateGameOver #winScreen {
 body.stateGameOverWin #winScreenWithPrompt {
 	transform: scale(1);
 	opacity: 1;
+}
+
+body.stateGameOverWin #winScreenWithPrompt .halfbutton {
+    opacity:1;
+    transform: scale(1);
 }

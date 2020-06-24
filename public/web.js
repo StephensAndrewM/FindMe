@@ -79,7 +79,6 @@ function getDefaultPrivateLocalState() {
 	};
 }
 
-var PageLoaded = false;
 var GlobalGameState = null;
 var PrivateLocalState = getDefaultPrivateLocalState();
 
@@ -239,13 +238,12 @@ $(function() {
 		
 			if (localPlayerWon) {
 				PrivateLocalState.DisplayState = DisplayState.GAME_OVER_WIN;
-				var name=$('<span></span>').text(winningPlayerName);
-				$('.winScreenMessage').html("YOU WIN,<br />").append(name).append("!");
 			} else {
 				PrivateLocalState.DisplayState = DisplayState.GAME_OVER;
-				var name=$('<span></span>').text(winningPlayerName);
-				$('.winScreenMessage').html(name).append("<br />Wins!");
 			}
+
+			// Only one screen will be shown so insert player name in both
+			$('span.winScreenPlayer').text(winningPlayerName);
 			
 			// Switch away from win prompt after a timeout
 			PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
@@ -294,7 +292,7 @@ $(function() {
 		return false;
 	});
 
-	// On load-populate the username from localStorage if possible
+	// On load, populate the username from localStorage if possible
 	if (localStorage.getItem(PLAYER_STORAGE_KEY) !== null) {
 		$('#playerInput').val(localStorage.getItem(PLAYER_STORAGE_KEY));
 	}
@@ -303,16 +301,11 @@ $(function() {
 
 var renderPlayerList = function() {
 
-	// Truncate existing players list then replace with current list
-	$('ul#playersList').html('');
-	GlobalGameState.Players.map(function(name) {
-		var playerItem = $('<li></li>').text(name);
-		$('ul#playersList').append(playerItem);
-	})
-	// Hide the list if there's nothing to display
-	$('ul#playersList').toggle(GlobalGameState.Players.length > 0);
+	// Update the players list in a more dynamic way
+	renderAnimatedList($('ul#playersList'), GlobalGameState.Players);
+
 	// Show the empty list message if there are no players
-	$('#noPlayersMsg').toggle(GlobalGameState.Players.length == 0);
+	$('#noPlayersMsg').toggleClass('inactive', GlobalGameState.Players.length > 0);
 
 	// Get list of winners, sorted by number of wins
 	var winners = Object.keys(GlobalGameState.WinsByUsername).sort(function(a,b) {
@@ -339,6 +332,41 @@ var renderPlayerList = function() {
 		$('.errorMessage').text("");
 	}
 	
+}
+
+var renderAnimatedList = function(selector, newItems) {
+	var ul = $(selector);
+	var existingItems = ul.find('li:not(.inactive)').toArray();
+
+	// console.log("Found existing items", existingItems);
+
+	var newItemsIndex = 0;
+	var existingItemsIndex = 0;
+	while(existingItemsIndex < existingItems.length) {
+		var existingItem = $(existingItems[existingItemsIndex]);
+		// console.log("Inspecting existing item", existingItem);
+		// console.log("New items", newItems, newItemsIndex);
+
+		if (newItemsIndex < newItems.length
+			&& newItems[newItemsIndex] === existingItem.data('item-id')) {
+			// console.log("Existing matches new", existingItemsIndex, newItemsIndex, newItems[newItemsIndex]);
+			newItemsIndex++;
+			existingItemsIndex++;
+		} else {
+			// console.log("Existing does not match", existingItemsIndex, newItemsIndex, existingItem.data('item-id'));
+			// This will animate the item out and treat it like it doesn't exist
+			existingItem.addClass("inactive");
+			existingItemsIndex++;
+		}
+	}
+
+	while (newItemsIndex < newItems.length) {
+		var newItem = $('<li></li>').text(newItems[newItemsIndex]);
+		newItem.data('item-id', newItems[newItemsIndex]);
+		ul.append(newItem);
+		// console.log('Added new item', newItem, newItemsIndex);
+		newItemsIndex++;
+	}
 }
 
 var renderGrid = function() {
@@ -472,8 +500,7 @@ var init = function() {
 			img.onload = function() {
 				loadedImages++;
 				if (loadedImages < 16) { return; }
-				PageLoaded = true;
-				render();
+				$('body').addClass('pageLoaded');
 			}
 
 			var tile = $('<a href="#" class="tile"></a>');
@@ -500,9 +527,6 @@ var updateGlobalGameState = function(data) {
 
 var render = function() {
 	$('body').removeClass();
-	if (PageLoaded) { 
-		$('body').addClass('pageLoaded');
-	}
 	$('body').addClass(PrivateLocalState.DisplayState);
 	if (PrivateLocalState.IsPlayerActive) {
 		$('body').addClass('activePlayer');
