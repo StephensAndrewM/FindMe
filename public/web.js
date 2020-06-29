@@ -79,6 +79,7 @@ function getDefaultPrivateLocalState() {
 	};
 }
 
+var PageLoaded = false;
 var GlobalGameState = null;
 var PrivateLocalState = getDefaultPrivateLocalState();
 
@@ -500,7 +501,8 @@ var init = function() {
 			img.onload = function() {
 				loadedImages++;
 				if (loadedImages < 16) { return; }
-				$('body').addClass('pageLoaded');
+				PageLoaded = true;
+				render();
 			}
 
 			var tile = $('<a href="#" class="tile"></a>');
@@ -527,6 +529,10 @@ var updateGlobalGameState = function(data) {
 
 var render = function() {
 	$('body').removeClass();
+	if (!PageLoaded) {
+		return;
+	}
+	$('body').addClass('pageLoaded');
 	$('body').addClass(PrivateLocalState.DisplayState);
 	if (PrivateLocalState.IsPlayerActive) {
 		$('body').addClass('activePlayer');
