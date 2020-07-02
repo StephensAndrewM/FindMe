@@ -1,6 +1,7 @@
 const chai = require("chai");
 const chaiAsPromised = require('chai-as-promised');
 const chaiArrays = require('chai-arrays');
+const server = require("../server.js")
 
 const {
 	Builder,
@@ -22,9 +23,12 @@ var expect = chai.expect;
 describe("Find Me user journeys", function() {
 	this.timeout(0);
 
+	var app;
 	var p1, p2;
 
 	beforeEach(function() {
+		app = server.run(/* deterministic= */ true);
+
 		p1 = new Builder()
 			.forBrowser('chrome')
 			.setChromeOptions(options)
@@ -38,6 +42,7 @@ describe("Find Me user journeys", function() {
 	afterEach(function() {
 		p1.quit();
 		p2.quit();
+		app.stop();
 	})
 
 	it("allows players to join and play", async function() {

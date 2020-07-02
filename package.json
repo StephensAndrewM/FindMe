@@ -8,6 +8,8 @@
     "express": "^4.13.4",
     "forcedomain": "^0.8.1",
     "jsonschema": "^1.1.0",
+    "loglevel": "^1.6.8",
+    "minimist": "^1.2.5",
     "socket.io": "^1.4.6"
   },
   "devDependencies": {
