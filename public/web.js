@@ -187,6 +187,7 @@ $(function() {
 		}, 2000);
 
 		playSound(EventSounds.START);
+		logScreenSize();
 
 		updateGlobalGameState(data);
 	});
@@ -556,6 +557,18 @@ var playSound = function(soundObj) {
 	if (soundObj.readyState < 4) { return; }
 	soundObj.currentTime = 0;
 	soundObj.play();
+}
+
+var logScreenSize = function() {
+	var width = Math.round(window.innerWidth / 100) * 100;
+	var height = Math.round(window.innerHeight / 100) * 100;
+
+	ga('send', {
+		hitType: 'event',
+		eventCategory: 'User Metrics',
+		eventAction: 'Browser Size',
+		eventLabel: width + "x" + height,
+	});
 }
 
 var isDebug = function() {
