@@ -17,7 +17,8 @@ html {
 
 body {
 	background: black;
-	max-width: 500px;
+	/* Max width changes as a function of screen height. */
+	max-width: 400px;
 	margin: 0 auto;
 	overflow: hidden;
 	position: relative;
@@ -508,6 +509,12 @@ h2#winnersListTitle {
 }
 
 /* Larger screens can have a wider game board */
+@media screen and (min-height: 675px) {
+	body {
+		max-width: 500px;
+	}
+}
+
 @media screen and (min-height: 800px) {
 	body {
 		max-width: 600px;

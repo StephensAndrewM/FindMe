@@ -140,6 +140,8 @@ $(function() {
 		} else {
 			console.log('ERR: ', data.message);
 
+			// Clear the bad input the player entered
+			$('#playerInput').val('')
 			displayTemporaryErrorMessage(data.message);
 		}
 
@@ -475,8 +477,8 @@ var closeWinScreen = function() {
 
 var displayTemporaryErrorMessage = function(msg) {
 	PrivateLocalState.ErrorMessage = msg;
-	// If it's the same message, clear it
 	window.setTimeout(function() {
+		// If it's the same message, clear it
 		if (PrivateLocalState.ErrorMessage == msg) {
 			PrivateLocalState.ErrorMessage = null;
 			render();
@@ -560,8 +562,9 @@ var playSound = function(soundObj) {
 }
 
 var logScreenSize = function() {
-	var width = Math.round(window.innerWidth / 100) * 100;
-	var height = Math.round(window.innerHeight / 100) * 100;
+	// Get window size, then round to tens place
+	var width = Math.round(window.innerWidth / 10) * 10;
+	var height = Math.round(window.innerHeight / 10) * 10;
 
 	ga('send', {
 		hitType: 'event',
