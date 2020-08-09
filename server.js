@@ -111,22 +111,27 @@ function run(deterministic) {
 				return;
 			}
 
-			var sanitizedName = data.name.substring(0, 20).toUpperCase();
+			var sanitizedName = data.name.trim().substring(0, 20).toUpperCase();
 
-			if (GlobalGameState.Players.indexOf(sanitizedName) !== -1) {
+			if (sanitizedName === "") {
+				log.debug("join: Player attempting joining with empty name");
+				sendToClient(client, ServerMessages.JOIN_RESULT, {
+					success: false,
+					message: 'Name cannot be empty',
+				});
+
+			} else if (GlobalGameState.Players.indexOf(sanitizedName) !== -1) {
 				log.debug("join: Player name already registered");
 				sendToClient(client, ServerMessages.JOIN_RESULT, {
 					success: false,
-					message: 'That name is already taken!',
-					state: GlobalGameState
+					message: 'That name is already taken',
 				});
 
 			} else if (GlobalGameState.GameInProgress) {
 				log.debug("join: Game in progress")
 				sendToClient(client, ServerMessages.JOIN_RESULT, {
 					success: false,
-					message: 'Wait until this game ends to join!',
-					state: GlobalGameState
+					message: 'Wait until this game ends to join',
 				});
 
 				// If good name, put into appropriate players list and respond happily
@@ -137,7 +142,6 @@ function run(deterministic) {
 				sendToClient(client, ServerMessages.JOIN_RESULT, {
 					success: true,
 					name: sanitizedName,
-					state: GlobalGameState
 				});
 
 				// Associate this string with the client so we know who disconnected
@@ -252,6 +256,10 @@ function run(deterministic) {
 
 	// Socket.io helper methods
 	var sendToClient = function(client, messageType, data) {
+		if (data === undefined) {
+			data = {};
+		}
+		data.state = GlobalGameState
 		log.debug("Sending " + messageType + " to Client " + client.id + " with Data:");
 		log.debug(JSON.stringify(data, null, 2));
 		client.emit(messageType, data);

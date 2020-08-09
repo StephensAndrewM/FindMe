@@ -108,7 +108,7 @@ $(function() {
 	// Report name and officially join game when player presses button
 	$('#setNameButton').click(function() {
 		var name = $('#playerInput').val();
-		if (name != '') {
+		if (name.trim() != '') {
 			console.log('Attempting to join game');
 			socket.emit(ClientMessages.JOIN, { 
 				name: name
