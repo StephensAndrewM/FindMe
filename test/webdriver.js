@@ -287,7 +287,7 @@ describe("Find Me user journeys", function() {
 		await expect(p1.findElement(By.id('playersList')).isDisplayed()).to.eventually.be.false;
 	})
 
-	it("allows clients to watch", async function() {
+	it("allows clients to watch, connected before game", async function() {
 		await waitForPageLoad(p1);
 		await waitForPageLoad(p2);
 
@@ -302,11 +302,11 @@ describe("Find Me user journeys", function() {
 		// Wait for game start animation to complete
 		await p1.sleep(4000)
 
-		// P2 should still see the players list but not join
-		await expect(p2.findElement(By.id('playersList')).isDisplayed()).to.eventually.be.true;
+		// P2 should still see the game in focus and should not be able to join
+		await expect(p2.findElement(By.id('playersList')).isDisplayed()).to.eventually.be.false;
 		await expect(p2.findElement(By.id('joinGameButton')).isDisplayed()).to.eventually.be.false;
 
-		// P1 presses two tiles to win, P2 should still see them
+		// P1 presses two tiles to win, P2 should see that on their board
 		await pressTile(p1, 2);
 		await expect(isTilePressed(p2, 2)).to.eventually.be.true;
 		await p1.sleep(1000);
@@ -316,7 +316,57 @@ describe("Find Me user journeys", function() {
 
 		// P1 presses button to keep themselves on list
 		await p1.findElement(By.id('postWinOptInButton')).click();
+
+		// Wait until the player list appears again
+		await p2.sleep(3000);
+
+		// P1 should be listed on both lists
+		await expectPlayersList(p1, ['P1']);
+		await expectPlayersList(p2, ['P1']);
+		await expectWinnersList(p1, ['P11']);
+		await expectWinnersList(p2, ['P11']);
+
+		// P2 should now be able to join again
+		await expect(p2.findElement(By.id('joinGameButton')).isDisplayed()).to.eventually.be.true;
+	})
+
+	it("allows clients to watch, connected during game", async function() {
+		await waitForPageLoad(p1);
+
+		// P1 joins the game
+		await p1.findElement(By.id('joinGameButton')).click();
 		await p1.sleep(1000);
+		await p1.findElement(By.id('playerInput')).sendKeys("P1", Key.RETURN);
+		await p1.sleep(1000);
+
+		// P1 starts the game
+		await p1.findElement(By.id('startGameButton')).click();
+		// Wait for game start animation to complete
+		await p1.sleep(4000)
+
+		// P1 presses a tile before p2 joins
+		await pressTile(p1, 2);
+		await p1.sleep(1000);
+
+		// P2 loads page now, and should be able to watch but not join
+		await waitForPageLoad(p2);
+		await p2.sleep(1000)
+
+		// P2 should still see the game in focus and should not be able to join
+		await expect(p2.findElement(By.id('playersList')).isDisplayed()).to.eventually.be.false;
+		await expect(p2.findElement(By.id('joinGameButton')).isDisplayed()).to.eventually.be.false;
+
+		// P1 presses two tiles to win, P2 should still see them
+		await expect(isTilePressed(p2, 2)).to.eventually.be.true;
+		await pressTile(p1, 1);
+		await expect(isTilePressed(p2, 1)).to.eventually.be.true;
+		await p1.sleep(1000);
+
+		// P1 presses button to keep themselves on list
+		await p1.findElement(By.id('postWinOptInButton')).click();
+
+		// Wait until the player list appears again
+		await p2.sleep(3000);
 
 		// P1 should be listed on both lists
 		await expectPlayersList(p1, ['P1']);

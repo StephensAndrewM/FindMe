@@ -360,7 +360,7 @@ h2#winnersListTitle {
 .winScreen {
 	position: absolute;
 	left: 0;
-	top: 30%;
+	top: 25%;
 	width: 100%;
 	text-align: center;
 	z-index:43;

@@ -94,6 +94,11 @@ $(function() {
 		// In case we lost connection to server, reset local state to default
 		PrivateLocalState = getDefaultPrivateLocalState();
 
+		// If a game is already happening, we should jump right into the game
+		if (data.state.GameInProgress) {
+			PrivateLocalState.DisplayState = DisplayState.IN_GAME;
+		}
+
 		updateGlobalGameState(data);
 	})
 
@@ -157,8 +162,6 @@ $(function() {
 	$('#unjoinGameButton').click(function() {
 		console.log("Attempting to disconnect on title screen");
 		leaveGame(socket);
-		// Need to re-render manually here since server does not trigger an event
-		render();
 		return false;
 	});
 
@@ -176,15 +179,11 @@ $(function() {
 	// Server notifies that game is definitely starting
 	socket.on(ServerMessages.GAME_START, function(data) {
 		PrivateLocalState.GameStartTileFlash = true;
-		if (PrivateLocalState.IsPlayerActive) {
-			PrivateLocalState.DisplayState = DisplayState.GAME_START;
-		}
+		PrivateLocalState.DisplayState = DisplayState.GAME_START;
 		
 		window.setTimeout(function() {
 			PrivateLocalState.GameStartTileFlash = false;
-			if (PrivateLocalState.IsPlayerActive) {
-				PrivateLocalState.DisplayState = DisplayState.IN_GAME;
-			}
+			PrivateLocalState.DisplayState = DisplayState.IN_GAME;
 			render();
 		}, 2000);
 
@@ -237,33 +236,22 @@ $(function() {
 		var winningPlayerName = data.state.Players[data.state.CurrentId];
 		var localPlayerWon = winningPlayerName == PrivateLocalState.PlayerName;
 
-		// Only show win screen if the user is part of the game
-		if (PrivateLocalState.IsPlayerActive) {
-		
-			if (localPlayerWon) {
-				PrivateLocalState.DisplayState = DisplayState.GAME_OVER_WIN;
-			} else {
-				PrivateLocalState.DisplayState = DisplayState.GAME_OVER;
-			}
-
-			// Only one screen will be shown so insert player name in both
-			$('span.winScreenPlayer').text(winningPlayerName);
-			
-			// Switch away from win prompt after a timeout
-			PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
-				if (localPlayerWon) {
-					leaveGame(socket);
-				}
-				closeWinScreen();
-			}, WIN_DISPLAY_TIMEOUT * 1000);
-
+		if (localPlayerWon) {
+			PrivateLocalState.DisplayState = DisplayState.GAME_OVER_WIN;
 		} else {
-			// If player is just watching, only clear the tile flash
-			window.setTimeout(function() {
-				PrivateLocalState.GameWinTileFlash = false;
-				render();
-			}, WIN_DISPLAY_TIMEOUT * 1000);
+			PrivateLocalState.DisplayState = DisplayState.GAME_OVER;
 		}
+
+		// Only one screen will be shown so insert player name in both
+		$('span.winScreenPlayer').text(winningPlayerName);
+		
+		// Switch away from win prompt after a timeout
+		PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
+			if (localPlayerWon) {
+				leaveGame(socket);
+			}
+			closeWinScreen();
+		}, WIN_DISPLAY_TIMEOUT * 1000);
 
 		updateGlobalGameState(data);
 	})
@@ -532,7 +520,7 @@ var updateGlobalGameState = function(data) {
 
 var render = function() {
 	$('body').removeClass();
-	if (!PageLoaded) {
+	if (!PageLoaded || GlobalGameState == null) {
 		return;
 	}
 	$('body').addClass('pageLoaded');
