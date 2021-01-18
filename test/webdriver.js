@@ -240,6 +240,7 @@ describe("Find Me user journeys", function() {
 
 		// P2 can rejoin
 		await waitForPageLoad(p2);
+		await p2.sleep(1000);
 		await p2.findElement(By.id('joinGameButton')).click();
 		await p2.sleep(1000);
 		// P2 does not need to re-enter name

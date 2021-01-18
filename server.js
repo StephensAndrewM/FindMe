@@ -1,8 +1,8 @@
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
-const validate = require('jsonschema').validate;
-const forcedomain = require('forcedomain');
+const { validate } = require('jsonschema');
+const { forceDomain } = require('forcedomain');
 const log = require('loglevel');
 
 log.setDefaultLevel("info");
@@ -49,7 +49,7 @@ function run(deterministic) {
 	});
 
 	// Don't allow access to site at herokuapp.com URL
-	app.use(forcedomain({
+	app.use(forceDomain({
 		hostname: 'lets.playfind.me'
 	}));
 
