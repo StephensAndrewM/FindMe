@@ -10,10 +10,6 @@ const {
 } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 
-const options = new chrome.Options()
-options.addArguments('--disable-dev-shm-usage')
-options.addArguments('--no-sandbox')
-
 // Configure Chai extensions, options, and aliases
 chai.use(chaiAsPromised);
 chai.use(chaiArrays);
@@ -27,16 +23,22 @@ describe("Find Me user journeys", function() {
 	var p1, p2;
 
 	beforeEach(function() {
-		app = server.run(/* deterministic= */ true);
+		app = server.run( /* deterministic= */ true);
 
 		p1 = new Builder()
 			.forBrowser('chrome')
-			.setChromeOptions(options)
+			.setChromeOptions(new chrome.Options())
 			.build();
+		p1.manage().window().setRect({width: 800, height: 800, x:0, y:0});
+		
+		p2options = new chrome.Options().setMobileEmulation({
+			deviceMetrics: {width:360, height:640}
+		})
 		p2 = new Builder()
 			.forBrowser('chrome')
-			.setChromeOptions(options)
+			.setChromeOptions(p2options)
 			.build();
+		p2.manage().window().setRect({width: 500, height: 800, x:900, y:0});
 	})
 
 	afterEach(async function() {

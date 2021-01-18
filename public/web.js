@@ -20,7 +20,7 @@ var ClientMessages = {
 
 var ServerMessages = {
 	CONNECT_RESULT: "ConnectResult",
-	JOIN_RESULT : "JoinResult",
+	JOIN_RESULT: "JoinResult",
 	PLAYER_LIST_UPDATE: "PlayerListUpdate",
 	GAME_START: "GameStart",
 	TILE_PRESS: "TilePress",
@@ -47,15 +47,17 @@ var DisplayState = {
 // This uses a distinct namespace from TileState since there's no 
 // functionality attached to these display modes.
 var WELCOME_SCREEN_BOARD_COLOR = [
-	[1,0,0,1],
-	[1,0,0,1],
-	[1,0,0,1],
-	[1,0,0,1]];
+	[1, 0, 0, 1],
+	[1, 0, 0, 1],
+	[1, 0, 0, 1],
+	[1, 0, 0, 1]
+];
 var GAME_START_BOARD_COLOR = [
-	[1,0,0,1],
-	[3,0,0,1],
-	[1,0,0,1],
-	[1,0,0,1]];
+	[1, 0, 0, 1],
+	[3, 0, 0, 1],
+	[1, 0, 0, 1],
+	[1, 0, 0, 1]
+];
 
 var TileColor = {
 	GRAY: 0,
@@ -115,7 +117,7 @@ $(function() {
 		var name = $('#playerInput').val();
 		if (name.trim() != '') {
 			console.log('Attempting to join game');
-			socket.emit(ClientMessages.JOIN, { 
+			socket.emit(ClientMessages.JOIN, {
 				name: name
 			});
 		}
@@ -132,16 +134,16 @@ $(function() {
 	// Player receives acknowledgement from server after attempting to join
 	socket.on(ServerMessages.JOIN_RESULT, function(data) {
 		PrivateLocalState.DisplayState = DisplayState.TITLE_SCREEN;
-		
+
 		if (data.success) {
 			console.log('Player successfully joined game');
 
 			PrivateLocalState.PlayerName = data.name;
 			PrivateLocalState.IsPlayerActive = true;
 			PrivateLocalState.ErrorMessage = null;
-			
+
 			// Save the name after server has confirmed success
-			localStorage.setItem(PLAYER_STORAGE_KEY, data.name)			
+			localStorage.setItem(PLAYER_STORAGE_KEY, data.name)
 		} else {
 			console.log('ERR: ', data.message);
 
@@ -168,7 +170,9 @@ $(function() {
 	// Respond to player intent to start the game
 	$('#startGameButton').click(function() {
 		// Disabled attribute could be set if not enough players
-		if ($(this).hasClass('disabled')) { return false; }
+		if ($(this).hasClass('disabled')) {
+			return false;
+		}
 
 		// Notify server, then server responds with official start
 		socket.emit(ClientMessages.START, {});
@@ -180,7 +184,7 @@ $(function() {
 	socket.on(ServerMessages.GAME_START, function(data) {
 		PrivateLocalState.GameStartTileFlash = true;
 		PrivateLocalState.DisplayState = DisplayState.GAME_START;
-		
+
 		window.setTimeout(function() {
 			PrivateLocalState.GameStartTileFlash = false;
 			PrivateLocalState.DisplayState = DisplayState.IN_GAME;
@@ -208,7 +212,7 @@ $(function() {
 
 		// Ignore presses when not local player's turn
 		var currentPlayerName = GlobalGameState.Players[GlobalGameState.CurrentId];
-		if (currentPlayerName != PrivateLocalState.PlayerName) { 
+		if (currentPlayerName != PrivateLocalState.PlayerName) {
 			console.log('It is not your turn!', currentPlayerName, PrivateLocalState.PlayerName);
 			return false;
 		}
@@ -244,7 +248,7 @@ $(function() {
 
 		// Only one screen will be shown so insert player name in both
 		$('span.winScreenPlayer').text(winningPlayerName);
-		
+
 		// Switch away from win prompt after a timeout
 		PrivateLocalState.WinPromptTimeout = window.setTimeout(function() {
 			if (localPlayerWon) {
@@ -300,7 +304,7 @@ var renderPlayerList = function() {
 	$('#noPlayersMsg').toggleClass('inactive', GlobalGameState.Players.length > 0);
 
 	// Get list of winners, sorted by number of wins
-	var winners = Object.keys(GlobalGameState.WinsByUsername).sort(function(a,b) {
+	var winners = Object.keys(GlobalGameState.WinsByUsername).sort(function(a, b) {
 		return GlobalGameState.WinsByUsername[b] - GlobalGameState.WinsByUsername[a]
 	});
 	// Hide the title if there's nothing to display
@@ -315,7 +319,7 @@ var renderPlayerList = function() {
 	})
 
 	// Only allow starting game if server is ready and player has joined
-	$('#startGameButton').toggleClass('disabled', 
+	$('#startGameButton').toggleClass('disabled',
 		(GlobalGameState.CanStartNewGame == false || PrivateLocalState.PlayerName == null));
 
 	if (PrivateLocalState.ErrorMessage != null) {
@@ -323,7 +327,7 @@ var renderPlayerList = function() {
 	} else {
 		$('.errorMessage').text("");
 	}
-	
+
 }
 
 var renderAnimatedList = function(selector, newItems) {
@@ -334,13 +338,13 @@ var renderAnimatedList = function(selector, newItems) {
 
 	var newItemsIndex = 0;
 	var existingItemsIndex = 0;
-	while(existingItemsIndex < existingItems.length) {
+	while (existingItemsIndex < existingItems.length) {
 		var existingItem = $(existingItems[existingItemsIndex]);
 		// console.log("Inspecting existing item", existingItem);
 		// console.log("New items", newItems, newItemsIndex);
 
-		if (newItemsIndex < newItems.length
-			&& newItems[newItemsIndex] === existingItem.data('item-id')) {
+		if (newItemsIndex < newItems.length &&
+			newItems[newItemsIndex] === existingItem.data('item-id')) {
 			// console.log("Existing matches new", existingItemsIndex, newItemsIndex, newItems[newItemsIndex]);
 			newItemsIndex++;
 			existingItemsIndex++;
@@ -365,8 +369,8 @@ var renderGrid = function() {
 	// Don't display current player or update grid if game starting, ending, or not in progress
 	if (PrivateLocalState.GameWinTileFlash) {
 		renderGridPostGame();
-	} else if (PrivateLocalState.GameStartTileFlash 
-		|| !GlobalGameState.GameInProgress) { 
+	} else if (PrivateLocalState.GameStartTileFlash ||
+		!GlobalGameState.GameInProgress) {
 		renderGridNotInGame();
 	} else {
 		renderGridInGame();
@@ -376,7 +380,7 @@ var renderGrid = function() {
 var renderGridPostGame = function() {
 	for (var y = 0; y < 4; y++) {
 		for (var x = 0; x < 4; x++) {
-			var tile = $('#flashpad a').eq((y*4)+x);
+			var tile = $('#flashpad a').eq((y * 4) + x);
 			tile.removeClass('red');
 			tile.removeClass('green');
 			tile.removeClass('red-flash');
@@ -392,12 +396,12 @@ var renderGridPostGame = function() {
 
 var renderGridNotInGame = function() {
 	// Otherwise, display according to a pre-set pattern
-	var layout = PrivateLocalState.GameStartTileFlash ? 
+	var layout = PrivateLocalState.GameStartTileFlash ?
 		GAME_START_BOARD_COLOR : WELCOME_SCREEN_BOARD_COLOR;
 
 	for (var y = 0; y < 4; y++) {
 		for (var x = 0; x < 4; x++) {
-			var tile = $('#flashpad a').eq((y*4)+x);
+			var tile = $('#flashpad a').eq((y * 4) + x);
 			tile.toggleClass('red', layout[y][x] == TileColor.RED);
 			tile.toggleClass('green', layout[y][x] == TileColor.GREEN);
 			tile.toggleClass('red-flash', layout[y][x] == TileColor.RED_FLASH);
@@ -411,10 +415,10 @@ var renderGridNotInGame = function() {
 var renderGridInGame = function() {
 	for (var y = 0; y < 4; y++) {
 		for (var x = 0; x < 4; x++) {
-			var tile = $('#flashpad a').eq((y*4)+x);
+			var tile = $('#flashpad a').eq((y * 4) + x);
 			tile.toggleClass('red', GlobalGameState.Board[y][x] == TileState.UNPRESSED);
 			tile.toggleClass('green', GlobalGameState.Board[y][x] == TileState.PRESSED);
-			tile.removeClass('red-flash');	// Never used to represent tile state
+			tile.removeClass('red-flash'); // Never used to represent tile state
 			tile.toggleClass('green-flash', GlobalGameState.Board[y][x] == TileState.WINNING);
 		}
 	}
@@ -431,9 +435,9 @@ var renderGridInGame = function() {
 }
 
 var renderCountdown = function() {
-	var display = GlobalGameState.GameInProgress
-		&& PrivateLocalState.IsPlayerActive
-		&& !PrivateLocalState.GameStartTileFlash;
+	var display = GlobalGameState.GameInProgress &&
+		PrivateLocalState.IsPlayerActive &&
+		!PrivateLocalState.GameStartTileFlash;
 
 	$('#countdown').toggleClass('isCountingDown', display);
 	if (PrivateLocalState.CountdownInterval != null) {
@@ -445,7 +449,7 @@ var renderCountdown = function() {
 			PrivateLocalState.CountdownSeconds--;
 			if (PrivateLocalState.CountdownSeconds < 0) {
 				// Don't display negative number, just in case
-				$('#countdown-number').text(0);	
+				$('#countdown-number').text(0);
 			} else {
 				$('#countdown-number').text(PrivateLocalState.CountdownSeconds);
 			}
@@ -491,13 +495,18 @@ var init = function() {
 			img.src = src;
 			img.onload = function() {
 				loadedImages++;
-				if (loadedImages < 16) { return; }
+				if (loadedImages < 16) {
+					return;
+				}
 				PageLoaded = true;
 				render();
 			}
 
 			var tile = $('<a href="#" class="tile"></a>');
-			tile.data({ 'x': x, 'y': y});
+			tile.data({
+				'x': x,
+				'y': y
+			});
 			var tileImg = $('<img />');
 			tileImg.attr('src', src);
 			tile.append(tileImg);
@@ -541,10 +550,14 @@ var render = function() {
 }
 
 var playSound = function(soundObj) {
-	if (isDebug()) { return; } 		// Save Andrew's sanity during dev work
+	if (isDebug()) {
+		return;
+	} // Save Andrew's sanity during dev work
 
 	// If not HAVE_ENOUGH_DATA don't try to play
-	if (soundObj.readyState < 4) { return; }
+	if (soundObj.readyState < 4) {
+		return;
+	}
 	soundObj.currentTime = 0;
 	soundObj.play();
 }
