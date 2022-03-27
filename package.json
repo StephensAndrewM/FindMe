@@ -9,7 +9,7 @@
     "forcedomain": "^2.2.2",
     "jsonschema": "^1.4.0",
     "loglevel": "^1.7.1",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "socket.io": "^2.4.1"
   },
   "devDependencies": {
