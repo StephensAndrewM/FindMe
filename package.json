@@ -4,21 +4,20 @@
   "description": "Online Multiplayer Find Me",
   "main": "index.js",
   "dependencies": {
-    "bower": "^1.8.11",
-    "express": "^4.13.4",
-    "forcedomain": "^2.2.2",
+    "bower": "^1.8.14",
+    "express": "^4.18.1",
+    "forcedomain": "^2.2.11",
     "jsonschema": "^1.4.0",
-    "loglevel": "^1.7.1",
-    "minimist": "^1.2.5",
-    "socket.io": "^2.4.1"
+    "loglevel": "^1.8.0",
+    "minimist": "^1.2.6",
+    "socket.io": "^4.5.0"
   },
   "devDependencies": {
-    "chai": "^4.2.0",
+    "chai": "^4.3.6",
     "chai-arrays": "^2.2.0",
     "chai-as-promised": "^7.1.1",
-    "chromedriver": "^87.0.5",
-    "mocha": "^8.2.1",
-    "selenium-webdriver": "^4.0.0-alpha.8"
+    "mocha": "^10.0.0",
+    "selenium-webdriver": "^4.1.2"
   },
   "scripts": {
     "test": "mocha --reporter spec --trace-warnings",

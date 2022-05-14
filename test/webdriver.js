@@ -198,6 +198,7 @@ describe("Find Me user journeys", function() {
 
 		// P2 can rejoin
 		await waitForPageLoad(p2);
+		await p2.sleep(1000)
 		await p2.findElement(By.id('joinGameButton')).click();
 		await p2.sleep(1000);
 		// P2 does not need to re-enter name
@@ -320,7 +321,7 @@ describe("Find Me user journeys", function() {
 		await p1.findElement(By.id('postWinOptInButton')).click();
 
 		// Wait until the player list appears again
-		await p2.sleep(3000);
+		await p2.sleep(4000);
 
 		// P1 should be listed on both lists
 		await expectPlayersList(p1, ['P1']);
@@ -368,7 +369,7 @@ describe("Find Me user journeys", function() {
 		await p1.findElement(By.id('postWinOptInButton')).click();
 
 		// Wait until the player list appears again
-		await p2.sleep(3000);
+		await p2.sleep(4000);
 
 		// P1 should be listed on both lists
 		await expectPlayersList(p1, ['P1']);
