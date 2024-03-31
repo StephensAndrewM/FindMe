@@ -6,10 +6,11 @@ const args = minimist(process.argv.slice(2), {
 	default: {
 		deterministic: false,
 		logLevel: "info",
+		port: 3000,
 	}
 })
 
 log.setLevel(args.logLevel);
 
 // Start the heart of the server
-server.run( /* deterministic= */ args.deterministic);
+server.run(args.deterministic, args.port);

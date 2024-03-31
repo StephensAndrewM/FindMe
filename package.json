@@ -6,7 +6,6 @@
   "dependencies": {
     "bower": "^1.8.14",
     "express": "^4.18.1",
-    "forcedomain": "^2.2.11",
     "jsonschema": "^1.4.0",
     "loglevel": "^1.8.0",
     "minimist": "^1.2.6",

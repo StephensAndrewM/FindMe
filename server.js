@@ -2,7 +2,6 @@ const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
 const { validate } = require('jsonschema');
-const { forceDomain } = require('forcedomain');
 const log = require('loglevel');
 
 log.setDefaultLevel("info");
@@ -37,21 +36,15 @@ const ServerMessages = {
 	GAME_RESET: "GameReset"
 };
 
-function run(deterministic) {
+function run(deterministic, port) {
 
 	var app = express();
 	var server = http.createServer(app);
 	var io = socketIO(server);
 
-	var port = process.env.PORT || 3000;
 	server.listen(port, function() {
 		log.info('Server listening at port %d', port);
 	});
-
-	// Don't allow access to site at herokuapp.com URL
-	app.use(forceDomain({
-		hostname: 'lets.playfind.me'
-	}));
 
 	// Allow access to static components
 	app.use(express.static(__dirname + '/public'));

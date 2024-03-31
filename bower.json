@@ -3,10 +3,9 @@
   "description": "Online Multiplayer Find Me",
   "main": "index.js",
   "authors": [
-    "Andrew Stephens"
+    "Andrew Kapko-Stephens"
   ],
   "license": "ISC",
-  "homepage": "",
   "private": true,
   "ignore": [
     "**/.*",

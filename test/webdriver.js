@@ -23,7 +23,7 @@ describe("Find Me user journeys", function() {
 	var p1, p2;
 
 	beforeEach(function() {
-		app = server.run( /* deterministic= */ true);
+		app = server.run( /* deterministic= */ true, /* port= */ 3000);
 
 		p1 = new Builder()
 			.forBrowser('chrome')
